@@ -21,18 +21,21 @@ import logRoutes from './log';
 import roleRoutes from './role';
 import { AnonymousRouter, AuthedRouter } from './types';
 
+export const sessionRouter: AnonymousRouter = new Router();
+export const anonymousRouter: AnonymousRouter = new Router();
+export const authedRouter: AuthedRouter = new Router();
+authedRouter.use(koaAuth());
+
+export const apiRouter = new Router<any, any>();
+
 const createRouters = (provider: Provider) => {
-  const sessionRouter: AnonymousRouter = new Router();
   sessionRouter.use(koaLogSession(provider));
   sessionRoutes(sessionRouter, provider);
 
-  const anonymousRouter: AnonymousRouter = new Router();
   signInSettingsRoutes(anonymousRouter);
   statusRoutes(anonymousRouter);
-  swaggerRoutes(anonymousRouter);
+  // SwaggerRoutes(anonymousRouter);
 
-  const authedRouter: AuthedRouter = new Router();
-  authedRouter.use(koaAuth());
   applicationRoutes(authedRouter);
   settingRoutes(authedRouter);
   connectorRoutes(authedRouter);
@@ -49,9 +52,17 @@ const createRouters = (provider: Provider) => {
 export default function initRouter(app: Koa, provider: Provider) {
   const apisApp = new Koa();
 
+  console.warn('IIIIIIII apisApp', apisApp.middleware);
+
   for (const router of createRouters(provider)) {
-    apisApp.use(router.routes()).use(router.allowedMethods());
+    apiRouter.use(router.routes()).use(router.allowedMethods());
   }
+
+  swaggerRoutes(apiRouter);
+
+  apisApp.use(apiRouter.routes()).use(apiRouter.allowedMethods());
+
+  console.warn('IIIIIIII XXXX apisApp', apisApp.middleware);
 
   app.use(mount('/api', apisApp));
 }

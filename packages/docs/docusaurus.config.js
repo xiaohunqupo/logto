@@ -65,6 +65,12 @@ const config = {
             label: 'SDK',
           },
           {
+            type: 'doc',
+            docId: 'api/README',
+            position: 'left',
+            label: 'API',
+          },
+          {
             type: 'localeDropdown',
             position: 'right',
           },

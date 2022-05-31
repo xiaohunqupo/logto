@@ -9,6 +9,12 @@ import { AnonymousRouter } from './types';
 
 export default function swaggerRoutes<T extends AnonymousRouter>(router: T) {
   router.get('/swagger.json', async (ctx, next) => {
+    // Console.warn('RRRRRRRRRR ctx.router', ctx.router);
+    // console.warn('RRRRRRRRRR ctx', ctx);
+
+    // console.warn('ctx.router.stack', ctx.router.stack);
+    // console.warn('sessionRouter.routes()', sessionRouter.routes());
+
     const routes = ctx.router.stack.map(({ path, stack, methods }) => {
       const guard = stack.find((function_): function_ is WithGuardConfig<IMiddleware> =>
         isGuardMiddleware(function_)
@@ -20,7 +26,10 @@ export default function swaggerRoutes<T extends AnonymousRouter>(router: T) {
     const paths = Object.fromEntries(
       routes.map<[string, OpenAPIV3.PathItemObject]>(({ path, methods, guard }) => {
         const body = guard?.config.body;
+        console.warn('PPPPPPP path', path, methods);
+        // Console.warn('BBBBBBB body', body);
 
+        // TODO: /oidc/* 不用展示? 应该页展示不了
         return [
           `/api${path}`,
           Object.fromEntries(
