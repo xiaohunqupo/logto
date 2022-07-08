@@ -20,6 +20,7 @@ const Contact = ({ isOpen, onCancel }: Props) => {
 
   return (
     <ReactModal
+      shouldCloseOnOverlayClick
       isOpen={isOpen}
       className={modalStyles.content}
       overlayClassName={modalStyles.overlay}

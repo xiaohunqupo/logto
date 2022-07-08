@@ -41,7 +41,12 @@ const CreateSuccess = ({ username, password, title, onClose, passwordLabel }: Pr
   }
 
   return (
-    <ReactModal isOpen className={modalStyles.content} overlayClassName={modalStyles.overlay}>
+    <ReactModal
+      isOpen
+      shouldCloseOnOverlayClick
+      className={modalStyles.content}
+      overlayClassName={modalStyles.overlay}
+    >
       <ModalLayout
         title={title}
         footer={

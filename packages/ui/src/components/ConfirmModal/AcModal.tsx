@@ -24,6 +24,7 @@ const AcModal = ({
 
   return (
     <ReactModal
+      shouldCloseOnOverlayClick
       role="dialog"
       isOpen={isOpen}
       className={classNames(styles.modal, className)}

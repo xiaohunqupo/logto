@@ -109,6 +109,7 @@ const UserDetails = () => {
                 </ActionMenuItem>
               </ActionMenu>
               <ReactModal
+                shouldCloseOnOverlayClick
                 isOpen={isResetPasswordFormOpen}
                 className={modalStyles.content}
                 overlayClassName={modalStyles.overlay}
@@ -125,6 +126,7 @@ const UserDetails = () => {
                 />
               </ReactModal>
               <ReactModal
+                shouldCloseOnOverlayClick
                 isOpen={isDeleteFormOpen}
                 className={modalStyles.content}
                 overlayClassName={modalStyles.overlay}

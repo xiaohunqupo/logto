@@ -52,6 +52,7 @@ const ChangePassword = () => {
         </div>
       </FormField>
       <ReactModal
+        shouldCloseOnOverlayClick
         isOpen={isOpen}
         className={modalStyles.content}
         overlayClassName={modalStyles.overlay}
