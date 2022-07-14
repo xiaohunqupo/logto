@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.0-alpha.5](https://github.com/logto-io/logto/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2022-07-14)
+
+
+### Features
+
+* **core:** add admin guard to signin ([#1523](https://github.com/logto-io/logto/issues/1523)) ([3e76de0](https://github.com/logto-io/logto/commit/3e76de0ac9ed1be5ad3903fc1c3863673014d9c2))
+* **core:** read connector packages env ([#1478](https://github.com/logto-io/logto/issues/1478)) ([adadcbe](https://github.com/logto-io/logto/commit/adadcbe21619da325673ef3f96f1ddc1a073540d))
+
+
+### Bug Fixes
+
+* **connector:** fix connector getConfig and validateConfig type ([#1530](https://github.com/logto-io/logto/issues/1530)) ([88a54aa](https://github.com/logto-io/logto/commit/88a54aaa9ebce419c149a33150a4927296cb705b))
+* **connector:** passwordless connector send test msg with unsaved config ([#1539](https://github.com/logto-io/logto/issues/1539)) ([0297f6c](https://github.com/logto-io/logto/commit/0297f6c52f7b5d730de44fbb08f88c2e9b951874))
+* **console:** should display user avatar through google connector ([e2f5263](https://github.com/logto-io/logto/commit/e2f52635c0b9854d4140ecf1df2f0422047790a5))
+* **console:** should not display unsaved alert on item deleted ([#1507](https://github.com/logto-io/logto/issues/1507)) ([459af38](https://github.com/logto-io/logto/commit/459af3823c1c5b4ba8cbdc860e1a9fb731975fcc))
+* **console:** should not display unsaved alert on settings updated ([#1508](https://github.com/logto-io/logto/issues/1508)) ([5dcdc62](https://github.com/logto-io/logto/commit/5dcdc62f73d9b0ad8e9fcbb3f10aa5816c5bc772))
+* **console:** tooltip style ([#1517](https://github.com/logto-io/logto/issues/1517)) ([f387652](https://github.com/logto-io/logto/commit/f387652bfd55a7842ee3c97a3df12f085aaf6013))
+
+
+
 ## [1.0.0-alpha.4](https://github.com/logto-io/logto/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2022-07-08)
 
 
