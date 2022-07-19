@@ -59,14 +59,8 @@ const Settings = () => {
                   <Select
                     value={value ?? defaultLanguage}
                     options={[
-                      {
-                        value: Language.English,
-                        title: t('settings.language_english'),
-                      },
-                      {
-                        value: Language.Chinese,
-                        title: t('settings.language_chinese'),
-                      },
+                      { value: Language.English, title: 'English' },
+                      { value: Language.Chinese, title: '中文' },
                     ]}
                     onChange={onChange}
                   />
