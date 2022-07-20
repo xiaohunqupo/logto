@@ -66,7 +66,7 @@ const ConnectorContent = ({ isDeleted, connectorData, onConnectorUpdated }: Prop
       return;
     }
 
-    const configJson = arbitraryObjectGuard.safeParse(config);
+    const configJson = arbitraryObjectGuard.safeParse(JSON.parse(config));
 
     if (!configJson.success) {
       toast.error(t('connector_details.save_error_json_parse_error'));

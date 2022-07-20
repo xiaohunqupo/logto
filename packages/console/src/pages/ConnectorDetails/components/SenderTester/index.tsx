@@ -56,7 +56,7 @@ const SenderTester = ({ connectorId, connectorType, config, className }: Props) 
 
   const onSubmit = handleSubmit(async (formData) => {
     const { sendTo } = formData;
-    const result = arbitraryObjectGuard.safeParse(config);
+    const result = arbitraryObjectGuard.safeParse(JSON.parse(config));
 
     if (!result.success) {
       toast.error(t('connector_details.save_error_json_parse_error'));

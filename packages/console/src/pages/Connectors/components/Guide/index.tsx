@@ -49,7 +49,7 @@ const Guide = ({ connector, onClose }: Props) => {
       return;
     }
 
-    const result = arbitraryObjectGuard.safeParse(connectorConfigJson);
+    const result = arbitraryObjectGuard.safeParse(JSON.parse(connectorConfigJson));
 
     if (!result.success) {
       toast.error(t('connector_details.save_error_json_parse_error'));

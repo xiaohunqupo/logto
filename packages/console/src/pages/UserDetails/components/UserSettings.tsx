@@ -63,7 +63,7 @@ const UserSettings = ({ userData, userFormData, isDeleted, onUserUpdated }: Prop
 
     const { customData: inputCustomData, name, avatar, roleNames } = formData;
 
-    const result = arbitraryObjectGuard.safeParse(inputCustomData);
+    const result = arbitraryObjectGuard.safeParse(JSON.parse(inputCustomData));
 
     if (!result.success) {
       toast.error(t('user_details.custom_data_invalid'));
