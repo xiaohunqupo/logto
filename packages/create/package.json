@@ -1,6 +1,6 @@
 {
   "name": "@logto/create",
-  "version": "1.0.0-beta.16",
+  "version": "1.23.1",
   "author": "Silverhand Inc. <contact@silverhand.io>",
   "license": "MPL-2.0",
   "type": "module",
@@ -12,9 +12,9 @@
   },
   "scripts": {},
   "engines": {
-    "node": "^16.13.0 || ^18.12.0"
+    "node": "^20.9.0"
   },
   "dependencies": {
-    "@logto/cli": "workspace:*"
+    "@logto/cli": "workspace:^1.23.1"
   }
 }

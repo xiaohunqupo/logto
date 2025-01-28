@@ -1,22 +1,27 @@
 const contact = {
-  title: 'Contate-nos',
+  title: 'Obter ajuda',
   description:
-    'Junte-se à nossa comunidade para fornecer feedback, pedir ajuda e compartilhar suas ideias com outros desenvolvedores',
+    'Para solicitações de ajuda ou feedback do produto, entre em contato conosco pelos seguintes métodos.',
   discord: {
-    title: 'Canal do Discord',
-    description: 'Junte-se ao nosso canal público para conversar com outros desenvolvedores',
-    button: 'Entrar',
+    title: 'Participe da comunidade Discord',
+    description: 'Conecte-se com outros desenvolvedores para encontrar soluções',
+    button: 'Participar',
   },
   github: {
-    title: 'GitHub',
-    description: 'Crie uma issue e envie no GitHub',
+    title: 'Comunique-se no GitHub',
+    description: 'Crie um problema e envie-o no GitHub',
     button: 'Abrir',
   },
   email: {
-    title: 'Enviar email',
-    description: 'Envie-nos um e-mail para mais informações e ajuda',
+    title: 'Entre em contato com o suporte via email',
+    description: 'Envie um email para obter mais informações e ajuda',
     button: 'Enviar',
+  },
+  reserve: {
+    title: 'Reserve seu horário com a equipe da Logto',
+    description: 'Agende uma sessão para um bate-papo ao vivo',
+    button: 'Agendar',
   },
 };
 
-export default contact;
+export default Object.freeze(contact);

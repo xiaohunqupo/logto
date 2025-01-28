@@ -1,4 +1,5 @@
 import type { Identifier } from '../types/index.js';
+
 import { mergeIdentifiers, categorizeIdentifiers } from './interaction.js';
 
 describe('interaction utils', () => {
@@ -44,7 +45,7 @@ describe('interaction utils', () => {
           { email: 'foo@logto.io', connectorId: 'foo_connector' }
         )
       ).toEqual({
-        userAccountIdentifiers: [usernameIdentifier, phoneIdentifier],
+        authIdentifiers: [usernameIdentifier, phoneIdentifier],
         profileIdentifiers: [emailIdentifier, socialIdentifier],
       });
     });

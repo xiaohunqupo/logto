@@ -1,38 +1,29 @@
-import { LogtoClientError, useLogto } from '@logto/react';
+import { useLogto } from '@logto/react';
 import classNames from 'classnames';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useHref } from 'react-router-dom';
 
-import Logo from '@/assets/images/logo.svg';
-import AppError from '@/components/AppError';
-import Button from '@/components/Button';
-import SessionExpired from '@/components/SessionExpired';
-import { useTheme } from '@/hooks/use-theme';
+import Logo from '@/assets/images/logo.svg?react';
+import Button from '@/ds-components/Button';
+import useRedirectUri from '@/hooks/use-redirect-uri';
+import useTenantPathname from '@/hooks/use-tenant-pathname';
+import useTheme from '@/hooks/use-theme';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
-const Welcome = () => {
+function Welcome() {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const navigate = useNavigate();
-  const { isAuthenticated, error, signIn } = useLogto();
-  const href = useHref('/callback');
+  const { navigate } = useTenantPathname();
+  const { isAuthenticated, signIn } = useLogto();
   const theme = useTheme();
+  const redirectUri = useRedirectUri();
 
   useEffect(() => {
-    // If Authenticated, navigate to the Admin Console root page. directly
+    // If authenticated, navigate to the console root page directly
     if (isAuthenticated) {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
-
-  if (error) {
-    if (error instanceof LogtoClientError) {
-      return <SessionExpired />;
-    }
-
-    return <AppError errorMessage={error.message} callStack={error.stack} />;
-  }
 
   return (
     <div className={classNames(styles.container, styles[theme])}>
@@ -50,7 +41,7 @@ const Welcome = () => {
             type="branding"
             title="welcome.create_account"
             onClick={() => {
-              void signIn(new URL(href, window.location.origin).toString());
+              void signIn(redirectUri.href);
             }}
           />
         </div>
@@ -58,6 +49,6 @@ const Welcome = () => {
       </main>
     </div>
   );
-};
+}
 
 export default Welcome;

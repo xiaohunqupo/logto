@@ -1,22 +1,27 @@
 const contact = {
-  title: 'Contact Us',
+  title: 'Get help',
   description:
-    'Join in our community to provide feedback, ask for help and share your thoughts with other developers',
+    'For help requests or product feedback, please contact us through the following methods.',
   discord: {
-    title: 'Discord channel',
-    description: 'Join our public channel to chat with other developers',
+    title: 'Join Discord community',
+    description: 'Connect with other developers to find solutions',
     button: 'Join',
   },
   github: {
-    title: 'GitHub',
+    title: 'Communicate on GitHub',
     description: 'Create an issue and submit at GitHub',
     button: 'Open',
   },
   email: {
-    title: 'Send email',
+    title: 'Contact support via email',
     description: 'Send us an email for further information and help',
     button: 'Send',
   },
+  reserve: {
+    title: 'Reserve your time with Logto team',
+    description: 'Quickly book a session for a live chat',
+    button: 'Book',
+  },
 };
 
-export default contact;
+export default Object.freeze(contact);

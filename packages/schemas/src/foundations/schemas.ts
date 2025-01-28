@@ -1,32 +1,36 @@
-import type { ZodObject, ZodType, ZodOptional } from 'zod';
+import { type SchemaLike } from '@logto/shared/universal';
+import type { ZodObject, ZodType, ZodOptional, ZodTypeAny } from 'zod';
+
+export type { SchemaLike, SchemaValue, SchemaValuePrimitive } from '@logto/shared/universal';
 
 type ParseOptional<K> = undefined extends K
   ? ZodOptional<ZodType<Exclude<K, undefined>>>
   : ZodType<K>;
 
-export type CreateGuard<T extends Record<string, unknown>> = ZodObject<{
-  [key in keyof T]-?: ParseOptional<T[key]>;
+export type Guard<T extends SchemaLike<string>> = ZodObject<
+  {
+    [key in keyof T]-?: ParseOptional<T[key]>;
+  },
+  'strip',
+  ZodTypeAny,
+  T,
+  T
+>;
+
+export type GeneratedSchema<
+  Key extends string,
+  CreateSchema extends Partial<SchemaLike<Key>>,
+  Schema extends SchemaLike<Key>,
+  Table extends string = string,
+  TableSingular extends string = string,
+> = Readonly<{
+  table: Table;
+  tableSingular: TableSingular;
+  fields: {
+    [key in Key]: string;
+  };
+  fieldKeys: readonly Key[];
+  createGuard: Guard<CreateSchema>;
+  guard: Guard<Schema>;
+  updateGuard: Guard<Partial<Schema>>;
 }>;
-
-export type Guard<T extends Record<string, unknown>> = ZodObject<{
-  [key in keyof T]: ZodType<T[key]>;
-}>;
-
-export type SchemaValuePrimitive = string | number | boolean | undefined;
-export type SchemaValue = SchemaValuePrimitive | Record<string, unknown> | unknown[] | null;
-export type SchemaLike<Key extends string = string> = {
-  [key in Key]: SchemaValue;
-};
-
-export type GeneratedSchema<Schema extends SchemaLike> = keyof Schema extends string
-  ? Readonly<{
-      table: string;
-      tableSingular: string;
-      fields: {
-        [key in keyof Required<Schema>]: string;
-      };
-      fieldKeys: ReadonlyArray<keyof Schema>;
-      createGuard: CreateGuard<Schema>;
-      guard: Guard<Schema>;
-    }>
-  : never;

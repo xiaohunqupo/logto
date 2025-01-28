@@ -3,25 +3,14 @@ import { createMockUtils } from '@logto/shared/esm';
 import snakecaseKeys from 'snakecase-keys';
 
 import { mockApplication } from '#src/__mocks__/index.js';
+import { mockEnvSet } from '#src/test-utils/env-set.js';
+import { MockQueries } from '#src/test-utils/tenant.js';
 
 import { getConstantClientMetadata } from './utils.js';
 
 const { jest } = import.meta;
 
 const { mockEsm } = createMockUtils(jest);
-
-mockEsm('#src/queries/application.js', () => ({
-  findApplicationById: jest.fn(async (): Promise<Application> => mockApplication),
-}));
-
-mockEsm('#src/queries/oidc-model-instance.js', () => ({
-  upsertInstance: jest.fn(),
-  findPayloadById: jest.fn(),
-  findPayloadByPayloadField: jest.fn(),
-  consumeInstanceById: jest.fn(),
-  destroyInstanceById: jest.fn(),
-  revokeInstanceByGrantId: jest.fn(),
-}));
 
 mockEsm(
   'date-fns',
@@ -31,6 +20,15 @@ mockEsm(
 );
 
 const { default: postgresAdapter } = await import('./adapter.js');
+
+const oidcModelInstances = {
+  upsertInstance: jest.fn(),
+  findPayloadById: jest.fn(),
+  findPayloadByPayloadField: jest.fn(),
+  consumeInstanceById: jest.fn(),
+  destroyInstanceById: jest.fn(),
+  revokeInstanceByGrantId: jest.fn(),
+};
 const {
   consumeInstanceById,
   destroyInstanceById,
@@ -38,14 +36,19 @@ const {
   findPayloadByPayloadField,
   revokeInstanceByGrantId,
   upsertInstance,
-} = await import('#src/queries/oidc-model-instance.js');
+} = oidcModelInstances;
+
+const queries = new MockQueries({
+  applications: { findApplicationById: jest.fn(async (): Promise<Application> => mockApplication) },
+  oidcModelInstances,
+});
 
 const now = Date.now();
 
 describe('postgres Adapter', () => {
   it('Client Modal', async () => {
     const rejectError = new Error('Not implemented');
-    const adapter = postgresAdapter('Client');
+    const adapter = postgresAdapter(mockEnvSet, queries, 'Client');
 
     await expect(adapter.upsert('client', {}, 0)).rejects.toMatchError(rejectError);
     await expect(adapter.findByUserCode('foo')).rejects.toMatchError(rejectError);
@@ -69,7 +72,7 @@ describe('postgres Adapter', () => {
       client_id,
       client_name,
       client_secret,
-      ...getConstantClientMetadata(type),
+      ...getConstantClientMetadata(mockEnvSet, type),
       ...snakecaseKeys(oidcClientMetadata),
       ...customClientMetadata,
     });
@@ -82,7 +85,7 @@ describe('postgres Adapter', () => {
     const id = 'fooId';
     const grantId = 'grantId';
     const expireAt = 60;
-    const adapter = postgresAdapter(modelName);
+    const adapter = postgresAdapter(mockEnvSet, queries, modelName);
 
     await adapter.upsert(id, { uid, userCode }, expireAt);
     expect(upsertInstance).toBeCalledWith({

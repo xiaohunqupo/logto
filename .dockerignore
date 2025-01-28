@@ -25,7 +25,12 @@ cache
 .idea/
 *.pem
 .history
-.vscode
 .git
-.github
 .gitignore
+dump.rdb
+
+.changeset
+.devcontainer
+.github
+.husky
+.vscode

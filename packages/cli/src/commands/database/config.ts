@@ -1,13 +1,20 @@
 import type { LogtoConfigKey } from '@logto/schemas';
-import { LogtoOidcConfigKey, logtoConfigGuards, logtoConfigKeys } from '@logto/schemas';
+import {
+  defaultTenantId,
+  LogtoOidcConfigKey,
+  logtoConfigGuards,
+  logtoConfigKeys,
+  SupportedSigningKeyAlgorithm,
+} from '@logto/schemas';
 import { deduplicate, noop } from '@silverhand/essentials';
 import chalk from 'chalk';
 import type { CommandModule } from 'yargs';
 
 import { createPoolFromConfig } from '../../database.js';
 import { getRowsByKeys, updateValueByKey } from '../../queries/logto-config.js';
-import { log } from '../../utilities.js';
-import { generateOidcCookieKey, generateOidcPrivateKey } from './utilities.js';
+import { consoleLog } from '../../utils.js';
+
+import { generateOidcCookieKey, generateOidcPrivateKey } from './utils.js';
 
 const validKeysDisplay = chalk.green(logtoConfigKeys.join(', '));
 
@@ -24,7 +31,7 @@ const validateKeys: ValidateKeysFunction = (keys) => {
   );
 
   if (invalidKey) {
-    log.error(
+    consoleLog.fatal(
       `Invalid config key ${chalk.red(invalidKey)} found, expected one of ${validKeysDisplay}`
     );
   }
@@ -35,17 +42,40 @@ const validRotateKeys = Object.freeze([
   LogtoOidcConfigKey.CookieKeys,
 ] as const);
 
-type ValidateRotateKeyFunction = (key: string) => asserts key is typeof validRotateKeys[number];
+const validPrivateKeyTypes = Object.freeze([
+  SupportedSigningKeyAlgorithm.RSA,
+  SupportedSigningKeyAlgorithm.EC,
+] as const);
+
+type ValidateRotateKeyFunction = (key: string) => asserts key is (typeof validRotateKeys)[number];
+
+type ValidatePrivateKeyTypeFunction = (
+  key: string
+) => asserts key is (typeof validPrivateKeyTypes)[number];
 
 const validateRotateKey: ValidateRotateKeyFunction = (key) => {
   // Using `.includes()` will result a type error
   // eslint-disable-next-line unicorn/prefer-includes
   if (!validRotateKeys.some((element) => element === key)) {
-    log.error(`Invalid config key ${chalk.red(key)} found, expected one of ${validKeysDisplay}`);
+    consoleLog.fatal(
+      `Invalid config key ${chalk.red(key)} found, expected one of ${validKeysDisplay}`
+    );
   }
 };
 
-const getConfig: CommandModule<unknown, { key: string; keys: string[] }> = {
+const validatePrivateKeyType: ValidatePrivateKeyTypeFunction = (key) => {
+  // Using `.includes()` will result a type error
+  // eslint-disable-next-line unicorn/prefer-includes
+  if (!validPrivateKeyTypes.some((element) => element === key)) {
+    consoleLog.fatal(
+      `Invalid private key type ${chalk.red(
+        key
+      )} found, expected one of ${validPrivateKeyTypes.join(', ')}`
+    );
+  }
+};
+
+const getConfig: CommandModule<unknown, { key: string; keys: string[]; tenantId: string }> = {
   command: 'get <key> [keys...]',
   describe: 'Get config value(s) of the given key(s) in Logto database',
   builder: (yargs) =>
@@ -60,16 +90,21 @@ const getConfig: CommandModule<unknown, { key: string; keys: string[] }> = {
         type: 'string',
         array: true,
         default: [],
+      })
+      .option('tenantId', {
+        describe: 'The tenant to operate',
+        type: 'string',
+        default: defaultTenantId,
       }),
-  handler: async ({ key, keys }) => {
+  handler: async ({ key, keys, tenantId }) => {
     const queryKeys = deduplicate([key, ...keys]);
     validateKeys(queryKeys);
 
     const pool = await createPoolFromConfig();
-    const { rows } = await getRowsByKeys(pool, queryKeys);
+    const { rows } = await getRowsByKeys(pool, tenantId, queryKeys);
     await pool.end();
 
-    console.log(
+    consoleLog.plain(
       queryKeys
         .map((currentKey) => {
           const value = rows.find(({ key }) => currentKey === key)?.value;
@@ -85,7 +120,7 @@ const getConfig: CommandModule<unknown, { key: string; keys: string[] }> = {
   },
 };
 
-const setConfig: CommandModule<unknown, { key: string; value: string }> = {
+const setConfig: CommandModule<unknown, { key: string; value: string; tenantId: string }> = {
   command: 'set <key> <value>',
   describe: 'Set config value of the given key in Logto database',
   builder: (yargs) =>
@@ -99,38 +134,58 @@ const setConfig: CommandModule<unknown, { key: string; value: string }> = {
         describe: 'The value to set, should be a valid JSON string',
         type: 'string',
         demandOption: true,
+      })
+      .option('tenantId', {
+        describe: 'The tenant to operate',
+        type: 'string',
+        default: defaultTenantId,
       }),
-  handler: async ({ key, value }) => {
+  handler: async ({ key, value, tenantId }) => {
     validateKeys(key);
 
     const guarded = logtoConfigGuards[key].parse(JSON.parse(value));
 
     const pool = await createPoolFromConfig();
-    await updateValueByKey(pool, key, guarded);
+    await updateValueByKey(pool, tenantId, key, guarded);
     await pool.end();
 
-    log.info(`Update ${chalk.green(key)} succeeded`);
+    consoleLog.info(`Update ${chalk.green(key)} succeeded`);
   },
 };
 
-const rotateConfig: CommandModule<unknown, { key: string }> = {
+const rotateConfig: CommandModule<unknown, { key: string; tenantId: string; type: string }> = {
   command: 'rotate <key>',
   describe:
     'Generate a new private or secret key for the given config key and prepend to the key array',
   builder: (yargs) =>
-    yargs.positional('key', {
-      describe: `The key to rotate, one of ${chalk.green(validRotateKeys.join(', '))}`,
-      type: 'string',
-      demandOption: true,
-    }),
-  handler: async ({ key }) => {
+    yargs
+      .positional('key', {
+        describe: `The key to rotate, one of ${chalk.green(validRotateKeys.join(', '))}`,
+        type: 'string',
+        demandOption: true,
+      })
+      .option('tenantId', {
+        describe: 'The tenant to operate',
+        type: 'string',
+        default: defaultTenantId,
+      })
+      .option('type', {
+        describe: `The key type for ${
+          LogtoOidcConfigKey.PrivateKeys
+        }, one of ${validPrivateKeyTypes.join(', ')}`,
+        type: 'string',
+        default: 'ec',
+      }),
+  handler: async ({ key, tenantId, type }) => {
+    const keyType = type.toUpperCase();
     validateRotateKey(key);
+    validatePrivateKeyType(keyType);
 
     const pool = await createPoolFromConfig();
-    const { rows } = await getRowsByKeys(pool, [key]);
+    const { rows } = await getRowsByKeys(pool, tenantId, [key]);
 
     if (!rows[0]) {
-      log.warn('No key found, create a new one');
+      consoleLog.warn('No key found, create a new one');
     }
 
     const getValue = async () => {
@@ -138,23 +193,25 @@ const rotateConfig: CommandModule<unknown, { key: string }> = {
       const original = parsed.success ? parsed.data : [];
 
       // No need for default. It's already exhaustive
-      // eslint-disable-next-line default-case
       switch (key) {
-        case LogtoOidcConfigKey.PrivateKeys:
-          return [await generateOidcPrivateKey(), ...original];
-        case LogtoOidcConfigKey.CookieKeys:
+        case LogtoOidcConfigKey.PrivateKeys: {
+          return [await generateOidcPrivateKey(keyType), ...original];
+        }
+
+        case LogtoOidcConfigKey.CookieKeys: {
           return [generateOidcCookieKey(), ...original];
+        }
       }
     };
     const rotated = await getValue();
-    await updateValueByKey(pool, key, rotated);
+    await updateValueByKey(pool, tenantId, key, rotated);
     await pool.end();
 
-    log.info(`Rotate ${chalk.green(key)} succeeded, now it has ${rotated.length} keys`);
+    consoleLog.info(`Rotate ${chalk.green(key)} succeeded, now it has ${rotated.length} keys`);
   },
 };
 
-const trimConfig: CommandModule<unknown, { key: string; length: number }> = {
+const trimConfig: CommandModule<unknown, { key: string; length: number; tenantId: string }> = {
   command: 'trim <key> [length]',
   describe: 'Remove the last [length] number of private or secret keys for the given config key',
   builder: (yargs) =>
@@ -169,19 +226,24 @@ const trimConfig: CommandModule<unknown, { key: string; length: number }> = {
         type: 'number',
         default: 1,
         demandOption: true,
+      })
+      .option('tenantId', {
+        describe: 'The tenant to operate',
+        type: 'string',
+        default: defaultTenantId,
       }),
-  handler: async ({ key, length }) => {
+  handler: async ({ key, length, tenantId }) => {
     validateRotateKey(key);
 
     if (length < 1) {
-      log.error('Invalid length provided');
+      consoleLog.fatal('Invalid length provided');
     }
 
     const pool = await createPoolFromConfig();
-    const { rows } = await getRowsByKeys(pool, [key]);
+    const { rows } = await getRowsByKeys(pool, tenantId, [key]);
 
     if (!rows[0]) {
-      log.warn('No key found, create a new one');
+      consoleLog.warn('No key found, create a new one');
     }
 
     const getValue = async () => {
@@ -189,16 +251,18 @@ const trimConfig: CommandModule<unknown, { key: string; length: number }> = {
 
       if (value.length - length < 1) {
         await pool.end();
-        log.error(`You should keep at least one key in the array, current length=${value.length}`);
+        consoleLog.fatal(
+          `You should keep at least one key in the array, current length=${value.length}`
+        );
       }
 
       return value.slice(0, -length);
     };
     const trimmed = await getValue();
-    await updateValueByKey(pool, key, trimmed);
+    await updateValueByKey(pool, tenantId, key, trimmed);
     await pool.end();
 
-    log.info(`Trim ${chalk.green(key)} succeeded, now it has ${trimmed.length} keys`);
+    consoleLog.info(`Trim ${chalk.green(key)} succeeded, now it has ${trimmed.length} keys`);
   },
 };
 

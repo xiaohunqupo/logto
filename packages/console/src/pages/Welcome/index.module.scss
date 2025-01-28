@@ -12,11 +12,11 @@
   background-repeat: no-repeat;
 
   &.light {
-    background-image: url('../../assets/icons/welcome.svg');
+    background-image: url('../../assets/images/welcome.svg');
   }
 
   &.dark {
-    background-image: url('../../assets/icons/welcome-dark.svg');
+    background-image: url('../../assets/images/welcome-dark.svg');
   }
 }
 
@@ -49,7 +49,7 @@ main {
 }
 
 .content {
-  margin-left: 98px;
+  margin-inline-start: 98px;
   width: 585px;
 }
 
@@ -63,7 +63,7 @@ main {
 }
 
 .description {
-  font: var(--font-body-large);
+  font: var(--font-body-1);
   color: var(--color-text-secondary);
   margin-bottom: _.unit(8);
 }

@@ -1,10 +1,12 @@
 import { GrantType, LogResult, token } from '@logto/schemas';
 import type { errors, KoaContextWithOIDC } from 'oidc-provider';
 
+import { type WithAppSecretContext } from '#src/middleware/koa-app-secret-transpilation.js';
 import type { WithLogContext } from '#src/middleware/koa-audit-log.js';
 
 import { stringifyError } from '../utils/format.js';
 import { isEnum } from '../utils/type.js';
+
 import { extractInteractionContext } from './utils.js';
 
 /**
@@ -12,7 +14,7 @@ import { extractInteractionContext } from './utils.js';
  * @see {@link https://github.com/panva/node-oidc-provider/blob/v7.x/lib/shared/error_handler.js OIDC Provider error handler}
  */
 export const grantListener = (
-  ctx: KoaContextWithOIDC & WithLogContext & { body: GrantBody },
+  ctx: KoaContextWithOIDC & WithLogContext & WithAppSecretContext & { body: GrantBody },
   error?: errors.OIDCProviderError
 ) => {
   const { params } = ctx.oidc;
@@ -68,6 +70,7 @@ const grantTypeToExchangeByType: Record<GrantType, token.ExchangeByType> = {
   [GrantType.AuthorizationCode]: token.ExchangeByType.AuthorizationCode,
   [GrantType.RefreshToken]: token.ExchangeByType.RefreshToken,
   [GrantType.ClientCredentials]: token.ExchangeByType.ClientCredentials,
+  [GrantType.TokenExchange]: token.ExchangeByType.TokenExchange,
 };
 
 const getExchangeByType = (grantType: unknown): token.ExchangeByType => {

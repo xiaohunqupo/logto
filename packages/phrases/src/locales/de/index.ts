@@ -1,10 +1,13 @@
-import type { LocalPhrase } from '../../types.js';
-import errors from './errors.js';
+import { type DeepPartial } from '@silverhand/essentials';
+
+import type { LocalePhrase } from '../../types.js';
+
+import errors from './errors/index.js';
 import translation from './translation/index.js';
 
-const de: LocalPhrase = Object.freeze({
+const de = {
   translation,
   errors,
-});
+} satisfies DeepPartial<LocalePhrase>;
 
-export default de;
+export default Object.freeze(de);

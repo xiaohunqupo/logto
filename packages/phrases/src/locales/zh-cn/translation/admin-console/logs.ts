@@ -1,4 +1,5 @@
 const logs = {
+  page_title: '审计日志',
   title: '审计日志',
   subtitle: '查看用户行为和事件',
   event: '事件',
@@ -8,4 +9,4 @@ const logs = {
   filter_by: '过滤',
 };
 
-export default logs;
+export default Object.freeze(logs);

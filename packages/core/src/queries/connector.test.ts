@@ -1,14 +1,25 @@
 import { Connectors } from '@logto/schemas';
-import { convertToIdentifiers } from '@logto/shared';
-import { createMockPool, createMockQueryResult, sql } from 'slonik';
+import { createMockPool, createMockQueryResult, sql } from '@silverhand/slonik';
 
 import { mockConnector } from '#src/__mocks__/index.js';
-import envSet from '#src/env-set/index.js';
 import { DeletionError } from '#src/errors/SlonikError/index.js';
+import { MockWellKnownCache } from '#src/test-utils/tenant.js';
+import { convertToIdentifiers } from '#src/utils/sql.js';
 import type { QueryType } from '#src/utils/test-utils.js';
 import { expectSqlAssert } from '#src/utils/test-utils.js';
 
-import {
+const { jest } = import.meta;
+
+const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
+
+const pool = createMockPool({
+  query: async (sql, values) => {
+    return mockQuery(sql, values);
+  },
+});
+
+const { createConnectorQueries } = await import('./connector.js');
+const {
   findAllConnectors,
   findConnectorById,
   countConnectorByConnectorId,
@@ -16,19 +27,7 @@ import {
   deleteConnectorByIds,
   insertConnector,
   updateConnector,
-} from './connector.js';
-
-const { jest } = import.meta;
-
-const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
-
-jest.spyOn(envSet, 'pool', 'get').mockReturnValue(
-  createMockPool({
-    query: async (sql, values) => {
-      return mockQuery(sql, values);
-    },
-  })
-);
+} = createConnectorQueries(pool, new MockWellKnownCache());
 
 describe('connector queries', () => {
   const { table, fields } = convertToIdentifiers(Connectors);
@@ -193,7 +192,8 @@ describe('connector queries', () => {
       return createMockQueryResult([connector]);
     });
 
-    await expect(insertConnector(mockConnector)).resolves.toEqual(connector);
+    const { tenantId, ...data } = mockConnector;
+    await expect(insertConnector(data)).resolves.toEqual(connector);
   });
 
   it('updateConnector (with id)', async () => {

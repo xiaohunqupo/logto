@@ -2,17 +2,18 @@ import { InteractionEvent } from '@logto/schemas';
 import { createMockUtils, pickDefault } from '@logto/shared/esm';
 
 import RequestError from '#src/errors/RequestError/index.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 
 import type { SignInInteractionResult } from '../types/index.js';
 
 const { jest } = import.meta;
-const { mockEsm, mockEsmDefault } = createMockUtils(jest);
+const { mockEsmDefault } = createMockUtils(jest);
 
 const findUserByIdentifier = mockEsmDefault('../utils/find-user-by-identifier.js', () => jest.fn());
 
-mockEsm('#src/libraries/social.js', () => ({
-  findSocialRelatedUser: jest.fn().mockResolvedValue(null),
-}));
+const tenant = new MockTenant(undefined, undefined, undefined, {
+  socials: { findSocialRelatedUser: jest.fn().mockResolvedValue(null) },
+});
 
 const verifyUserAccount = await pickDefault(import('./user-identity-verification.js'));
 
@@ -23,23 +24,12 @@ describe('verifyUserAccount', () => {
     jest.clearAllMocks();
   });
 
-  it('empty identifiers with accountId', async () => {
-    const interaction: SignInInteractionResult = {
-      event: InteractionEvent.SignIn,
-      accountId: 'foo',
-    };
-
-    const result = await verifyUserAccount(interaction);
-
-    expect(result).toEqual(result);
-  });
-
-  it('empty identifiers withOut accountId should throw', async () => {
+  it('empty identifiers should throw', async () => {
     const interaction: SignInInteractionResult = {
       event: InteractionEvent.SignIn,
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError({ code: 'session.identifier_not_found', status: 404 })
     );
   });
@@ -50,9 +40,9 @@ describe('verifyUserAccount', () => {
       identifiers: [{ key: 'accountId', value: 'foo' }],
     };
 
-    const result = await verifyUserAccount(interaction);
+    const result = await verifyUserAccount(tenant, interaction);
 
-    expect(result).toEqual({ event: InteractionEvent.SignIn, accountId: 'foo', identifiers: [] });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 
   it('verify emailVerified identifier', async () => {
@@ -63,10 +53,10 @@ describe('verifyUserAccount', () => {
       identifiers: [{ key: 'emailVerified', value: 'email' }],
     };
 
-    const result = await verifyUserAccount(interaction);
-    expect(findUserByIdentifierMock).toBeCalledWith({ email: 'email' });
+    const result = await verifyUserAccount(tenant, interaction);
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { email: 'email' });
 
-    expect(result).toEqual({ event: InteractionEvent.SignIn, accountId: 'foo', identifiers: [] });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 
   it('verify phoneVerified identifier', async () => {
@@ -77,10 +67,10 @@ describe('verifyUserAccount', () => {
       identifiers: [{ key: 'phoneVerified', value: '123456' }],
     };
 
-    const result = await verifyUserAccount(interaction);
-    expect(findUserByIdentifierMock).toBeCalledWith({ phone: '123456' });
+    const result = await verifyUserAccount(tenant, interaction);
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { phone: '123456' });
 
-    expect(result).toEqual({ event: InteractionEvent.SignIn, accountId: 'foo', identifiers: [] });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 
   it('verify social identifier', async () => {
@@ -91,13 +81,13 @@ describe('verifyUserAccount', () => {
       identifiers: [{ key: 'social', connectorId: 'connectorId', userInfo: { id: 'foo' } }],
     };
 
-    const result = await verifyUserAccount(interaction);
-    expect(findUserByIdentifierMock).toBeCalledWith({
+    const result = await verifyUserAccount(tenant, interaction);
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, {
       connectorId: 'connectorId',
       userInfo: { id: 'foo' },
     });
 
-    expect(result).toEqual({ event: InteractionEvent.SignIn, accountId: 'foo', identifiers: [] });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 
   it('verify social identifier user identity not exist', async () => {
@@ -105,22 +95,28 @@ describe('verifyUserAccount', () => {
 
     const interaction: SignInInteractionResult = {
       event: InteractionEvent.SignIn,
-      identifiers: [{ key: 'social', connectorId: 'connectorId', userInfo: { id: 'foo' } }],
+      identifiers: [
+        {
+          key: 'social',
+          connectorId: 'connectorId',
+          userInfo: { id: 'foo', email: 'email@logto.io' },
+        },
+      ],
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError(
         {
           code: 'user.identity_not_exist',
           status: 422,
         },
-        null
+        {}
       )
     );
 
-    expect(findUserByIdentifierMock).toBeCalledWith({
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, {
       connectorId: 'connectorId',
-      userInfo: { id: 'foo' },
+      userInfo: { id: 'foo', email: 'email@logto.io' },
     });
   });
 
@@ -135,10 +131,10 @@ describe('verifyUserAccount', () => {
       ],
     };
 
-    const result = await verifyUserAccount(interaction);
-    expect(findUserByIdentifierMock).toBeCalledWith({ email: 'email' });
+    const result = await verifyUserAccount(tenant, interaction);
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { email: 'email' });
 
-    expect(result).toEqual({ event: InteractionEvent.SignIn, accountId: 'foo', identifiers: [] });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 
   it('verify accountId and emailVerified identifier with email user not exist', async () => {
@@ -152,11 +148,11 @@ describe('verifyUserAccount', () => {
       ],
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError({ code: 'user.user_not_exist', status: 404 }, { identifier: 'email' })
     );
 
-    expect(findUserByIdentifierMock).toBeCalledWith({ email: 'email' });
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { email: 'email' });
   });
 
   it('verify phoneVerified and emailVerified identifier with email user suspend', async () => {
@@ -172,12 +168,12 @@ describe('verifyUserAccount', () => {
       ],
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError({ code: 'user.suspended', status: 401 })
     );
 
-    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(1, { email: 'email' });
-    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(2, { phone: '123456' });
+    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(1, tenant, { email: 'email' });
+    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(2, tenant, { phone: '123456' });
   });
 
   it('verify phoneVerified and emailVerified identifier returns inconsistent id', async () => {
@@ -193,11 +189,11 @@ describe('verifyUserAccount', () => {
       ],
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError('session.verification_failed')
     );
-    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(1, { email: 'email' });
-    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(2, { phone: '123456' });
+    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(1, tenant, { email: 'email' });
+    expect(findUserByIdentifierMock).toHaveBeenNthCalledWith(2, tenant, { phone: '123456' });
   });
 
   it('verify emailVerified identifier returns inconsistent id with existing accountId', async () => {
@@ -209,10 +205,10 @@ describe('verifyUserAccount', () => {
       identifiers: [{ key: 'emailVerified', value: 'email' }],
     };
 
-    await expect(verifyUserAccount(interaction)).rejects.toMatchError(
+    await expect(verifyUserAccount(tenant, interaction)).rejects.toMatchError(
       new RequestError('session.verification_failed')
     );
-    expect(findUserByIdentifierMock).toBeCalledWith({ email: 'email' });
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { email: 'email' });
   });
 
   it('profile use identifier should remain', async () => {
@@ -231,20 +227,9 @@ describe('verifyUserAccount', () => {
       },
     };
 
-    const result = await verifyUserAccount(interaction);
-    expect(findUserByIdentifierMock).toBeCalledWith({ email: 'email' });
+    const result = await verifyUserAccount(tenant, interaction);
+    expect(findUserByIdentifierMock).toBeCalledWith(tenant, { email: 'email' });
 
-    expect(result).toEqual({
-      event: InteractionEvent.SignIn,
-      accountId: 'foo',
-      identifiers: [
-        { key: 'social', connectorId: 'connectorId', userInfo: { id: 'foo' } },
-        { key: 'phoneVerified', value: '123456' },
-      ],
-      profile: {
-        phone: '123456',
-        connectorId: 'connectorId',
-      },
-    });
+    expect(result).toEqual({ ...interaction, accountId: 'foo' });
   });
 });

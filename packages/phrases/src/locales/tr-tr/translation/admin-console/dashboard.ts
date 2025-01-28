@@ -1,4 +1,5 @@
 const dashboard = {
+  page_title: 'Gösterge Paneli',
   title: 'Gösterge Paneli',
   description: 'Uygulamanızın performansı hakkında genel bir bakış elde edin',
   total_users: 'Tüm Kullanıcılar',
@@ -18,4 +19,4 @@ const dashboard = {
     'Son 30 günde uygulamalarınızda token değişiminde bulunan özgün kullanıcı sayısı',
 };
 
-export default dashboard;
+export default Object.freeze(dashboard);

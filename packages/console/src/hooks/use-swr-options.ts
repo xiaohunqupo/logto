@@ -1,23 +1,24 @@
-import type { SWRConfiguration } from 'swr';
+import type React from 'react';
+import { useMemo } from 'react';
+import type { SWRConfig } from 'swr';
 
-import { RequestError } from './use-api';
+import { shouldRetryOnError } from '@/utils/request';
+
+import useApi from './use-api';
 import useSwrFetcher from './use-swr-fetcher';
 
-const useSwrOptions = (): SWRConfiguration => {
-  const fetcher = useSwrFetcher();
+const useSwrOptions = (): Partial<React.ComponentProps<typeof SWRConfig>['value']> => {
+  const api = useApi();
+  const fetcher = useSwrFetcher(api);
 
-  return {
-    fetcher,
-    shouldRetryOnError: (error: unknown) => {
-      if (error instanceof RequestError) {
-        const { status } = error;
-
-        return status !== 401 && status !== 403;
-      }
-
-      return true;
-    },
-  };
+  const config = useMemo(
+    () => ({
+      fetcher,
+      shouldRetryOnError: shouldRetryOnError({ ignore: [401, 403] }),
+    }),
+    [fetcher]
+  );
+  return config;
 };
 
 export default useSwrOptions;

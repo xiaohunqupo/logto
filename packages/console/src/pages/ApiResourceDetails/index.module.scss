@@ -1,8 +1,7 @@
 @use '@/scss/underscore' as _;
 
-.backLink {
-  margin: _.unit(1) 0 0 _.unit(1);
-  user-select: none;
+.permissionPage {
+  height: 100%;
 }
 
 .deleteConfirm {
@@ -11,52 +10,10 @@
   }
 
   .description {
-    font: var(--font-body-medium);
+    font: var(--font-body-2);
   }
 
   .highlight {
     color: var(--color-primary-50);
-  }
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .info {
-    display: flex;
-
-    .icon {
-      margin-left: _.unit(2);
-      width: 60px;
-      height: 60px;
-      object-fit: cover;
-    }
-
-    .meta {
-      margin-left: _.unit(6);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-
-      .name {
-        font: var(--font-title-large);
-        color: var(--color-text);
-      }
-    }
-  }
-
-  .operations {
-    display: flex;
-    align-items: center;
-
-    .moreIcon {
-      color: var(--color-text-secondary);
-    }
-
-    > *:not(:first-child) {
-      margin-left: _.unit(3);
-    }
   }
 }

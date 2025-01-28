@@ -1,28 +1,31 @@
 import type { AdminConsoleKey } from '@logto/phrases';
+import { useTranslation } from 'react-i18next';
 import ReactModal from 'react-modal';
 
-import Close from '@/assets/images/close.svg';
+import Close from '@/assets/icons/close.svg?react';
+import CardTitle from '@/ds-components/CardTitle';
+import IconButton from '@/ds-components/IconButton';
+import Spacer from '@/ds-components/Spacer';
 
-import CardTitle from '../CardTitle';
-import IconButton from '../IconButton';
-import Spacer from '../Spacer';
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  title?: AdminConsoleKey;
-  subtitle?: AdminConsoleKey;
-  isOpen: boolean;
-  children: React.ReactNode;
-  onClose?: () => void;
+  readonly title?: AdminConsoleKey;
+  readonly subtitle?: AdminConsoleKey;
+  readonly isOpen: boolean;
+  readonly children: React.ReactNode;
+  readonly onClose?: () => void;
 };
 
-const Drawer = ({ title, subtitle, isOpen, children, onClose }: Props) => {
+function Drawer({ title, subtitle, isOpen, children, onClose }: Props) {
+  const { i18n } = useTranslation();
   return (
     <ReactModal
       shouldCloseOnOverlayClick
       // Styling purpose
       // eslint-disable-next-line jsx-a11y/aria-role
       role="drawer"
+      data={{ dir: i18n.dir() }}
       isOpen={isOpen}
       className={styles.content}
       overlayClassName={styles.overlay}
@@ -43,6 +46,6 @@ const Drawer = ({ title, subtitle, isOpen, children, onClose }: Props) => {
       </div>
     </ReactModal>
   );
-};
+}
 
 export default Drawer;

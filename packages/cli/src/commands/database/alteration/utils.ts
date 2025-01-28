@@ -1,16 +1,16 @@
-import { existsSync } from 'fs';
-import fs from 'fs/promises';
+import { existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import path from 'path';
 
 import { findPackage } from '@logto/shared';
 
-import { getPathInModule } from '../../../utilities.js';
-import { metaUrl } from './meta-url.js';
+import { getPathInModule } from '../../../utils.js';
+
 import type { AlterationFile } from './type.js';
 
-const currentDirname = path.dirname(fileURLToPath(metaUrl));
-const alterationFilenameRegex = /-(\d+)-?.*\.js$/;
+const currentDirname = path.dirname(fileURLToPath(import.meta.url));
+const alterationFilenameRegex = /-([\d.]+)-?.*\.js$/;
 
 export const getTimestampFromFilename = (filename: string) => {
   const match = alterationFilenameRegex.exec(filename);
@@ -44,8 +44,27 @@ export const getAlterationFiles = async (): Promise<AlterationFile[]> => {
   }
 
   // We need to copy alteration files to execute in the CLI context to make `slonik` available
-  await fs.rm(localAlterationDirectory, { force: true, recursive: true });
-  await fs.cp(alterationDirectory, localAlterationDirectory, { recursive: true });
+  // Notice that we don't remove the folder,
+  // this ensures that the writabiliy remains (and also allows this to be a separately-mounted directory.
+  if (!existsSync(localAlterationDirectory)) {
+    await fs.mkdir(localAlterationDirectory, { recursive: true });
+  }
+
+  const oldFiles = await fs.readdir(localAlterationDirectory);
+  await Promise.all(
+    oldFiles.map(async (file) =>
+      fs.rm(path.join(localAlterationDirectory, file), { force: true, recursive: true })
+    )
+  );
+  const newFiles = await fs.readdir(alterationDirectory);
+  await Promise.all(
+    newFiles.map(async (file) =>
+      fs.cp(path.join(alterationDirectory, file), path.join(localAlterationDirectory, file), {
+        recursive: true,
+        preserveTimestamps: true,
+      })
+    )
+  );
 
   const directory = await fs.readdir(localAlterationDirectory);
   const files = directory.filter((file) => alterationFilenameRegex.test(file));
@@ -54,4 +73,15 @@ export const getAlterationFiles = async (): Promise<AlterationFile[]> => {
     .slice()
     .sort((file1, file2) => getTimestampFromFilename(file1) - getTimestampFromFilename(file2))
     .map((filename) => ({ path: path.join(localAlterationDirectory, filename), filename }));
+};
+
+export const chooseRevertAlterationsByTimestamp = async (target: string) => {
+  const files = await getAlterationFiles();
+  const targetTimestamp = Number(target);
+
+  if (Number.isNaN(targetTimestamp)) {
+    return [];
+  }
+
+  return files.filter(({ filename }) => getTimestampFromFilename(filename) > targetTimestamp);
 };

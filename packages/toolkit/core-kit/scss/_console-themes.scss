@@ -92,6 +92,7 @@
   --color-alert-99: #fff5eb;
 
   // color aliases
+  --color-static-white: #fff;
   --color-primary: var(--color-primary-40);
   --color-on-primary: var(--color-all-100);
   --color-primary-container: var(--color-primary-90);
@@ -105,9 +106,15 @@
   --color-tertiary-container: var(--color-tertiary-90);
   --color-on-tertiary-container: var(--color-tertiary-10);
   --color-error: var(--color-error-40);
-  --color-on-error: var(--color-all-100);
-  --color-error-container: var(--color-error-90);
-  --color-on-error-container: var(--color-error-10);
+  --color-error-hover: var(--color-error-50);
+  --color-error-container: var(--color-error-95);
+  --color-on-error-container: var(--color-error-50);
+  --color-alert-container: var(--color-alert-95);
+  --color-on-alert-container: var(--color-alert-70);
+  --color-success-container: var(--color-success-99);
+  --color-on-success-container: var(--color-success-70);
+  --color-info-container: var(--color-neutral-variant-90);
+  --color-on-info-container: var(--color-neutral-variant-60);
   --color-background: var(--color-neutral-99);
   --color-on-background: var(--color-neutral-10);
   --color-surface: var(--color-neutral-99);
@@ -149,6 +156,23 @@
   --color-hover-variant: rgba(93, 52, 242, 8%); // 8% Primary-40
   --color-pressed-variant: rgba(93, 52, 242, 12%); // 12% Primary-40
   --color-focused-variant: rgba(93, 52, 242, 16%); // 16% Primary-40
+  --color-env-tag-development: rgba(93, 52, 242, 15%);
+  --color-env-tag-staging: rgba(255, 185, 90, 35%);
+  --color-env-tag-production: rgba(131, 218, 133, 35%);
+  --color-specific-icon-bg: #f3effa;
+  --color-specific-toggle-off-enable: var(--color-neutral-90);
+  --color-specific-unselected-disabled: var(--color-hover); // 8% Neutral-10
+  --color-specific-selected-disabled: var(--color-primary-80);
+  --color-specific-focused-inside: var(--color-primary-30);
+  --color-specific-focused-outside: var(--color-primary-40);
+  --color-specific-button-icon: rgba(255, 255, 255, 70%); // 70% static white
+  --color-overlay-primary-hover: rgba(93, 52, 242, 8%); // 8% Primary-40
+  --color-overlay-primary-pressed: rgba(93, 52, 242, 12%); // 12% Primary-40
+  --color-function-n-overlay-primary-focused: rgba(93, 52, 242, 16%); // 16% Primary-40
+  --color-overlay-danger-hover: rgba(186, 27, 27, 8%); // 8% Error-40
+  --color-overlay-dark-bg-hover: rgba(255, 255, 255, 12%); // 12% static white
+  --color-overlay-dark-bg-pressed: rgba(255, 255, 255, 18%); // 18% static white
+  --color-overlay-dark-bg-focused: rgba(255, 255, 255, 24%); // 24% static white
 
   // Shadows
   --shadow-1: 0 4px 8px rgba(0, 0, 0, 8%);
@@ -164,10 +188,38 @@
   --color-tooltip-background: #34353f; // dark theme Surface-4
   --color-tooltip-text: var(--color-neutral-99);
   --color-overlay: rgba(0, 0, 0, 30%);
+  --color-overlay-default-focused: rgba(25, 28, 29, 16%);
   --color-drawer-overlay: rgba(0, 0, 0, 40%);
   --color-guide-dropdown-background: var(--color-white);
   --color-guide-dropdown-border: var(--color-border);
   --color-skeleton-shimmer-rgb: 255, 255, 255; // rgb of Layer-1
+  --color-specific-tag-upsell: var(--color-primary-50);
+  --color-specific-tag-test: var(--color-tertiary-50);
+  --color-specific-toggle-thumb-disabled: #ffffffb3;
+
+  // Background
+  --color-bg-body-base: var(--color-neutral-95);
+  --color-bg-body: var(--color-neutral-100);
+  --color-bg-layer-1: var(--color-all-100);
+  --color-bg-layer-2: var(--color-neutral-95);
+  --color-bg-body-overlay: var(--color-neutral-100);
+  --color-bg-float-base: var(--color-neutral-variant-90);
+  --color-bg-float: var(--color-neutral-100);
+  --color-bg-float-overlay: var(--color-neutral-100);
+  --color-bg-mask: rgba(0, 0, 0, 40%); // 4% --color-neutral-0
+  --color-bg-toast: var(--color-neutral-20);
+  --color-bg-state-unselected: var(--color-neutral-90);
+  --color-bg-state-disabled: rgba(25, 28, 29, 8%); // 8% --color-neutral-10
+  --color-bg-info-tag: rgba(229, 225, 236, 80%); // 80% --color-neutral-variant-90
+
+  // code editor
+  --color-code-bg: #181133;
+  --color-code-bg-float: #30314e;
+  --color-code-white: #f7f8f8;
+  --color-code-grey: #adaab4;
+  --color-code-dark-bg-focused: rgba(255, 255, 255, 24%);
+  --color-code-dark-bg-hover: rgba(255, 255, 255, 12%);
+  --color-code-dark-bg-pressed: rgba(255, 255, 255, 18%);
 }
 
 @mixin dark {
@@ -264,6 +316,7 @@
   --color-alert-99: #2b1700;
 
   // color aliases
+  --color-static-white: #fff;
   --color-primary: var(--color-primary-70);
   --color-on-primary: var(--color-all-0);
   --color-primary-container: var(--color-primary-30);
@@ -277,9 +330,15 @@
   --color-tertiary-container: var(--color-tertiary-90);
   --color-on-tertiary-container: var(--color-tertiary-30);
   --color-error: var(--color-error-70);
-  --color-on-error: var(--color-all-0);
-  --color-error-container: var(--color-error-90);
-  --color-on-error-container: var(--color-error-30);
+  --color-error-hover: var(--color-error-60);
+  --color-error-container: var(--color-error-95);
+  --color-on-error-container: var(--color-error-70);
+  --color-alert-container: var(--color-alert-90);
+  --color-on-alert-container: var(--color-alert-60);
+  --color-success-container: var(--color-success-90);
+  --color-on-success-container: var(--color-success-60);
+  --color-info-container: var(--color-neutral-variant-90);
+  --color-on-info-container: var(--color-neutral-variant-70);
   --color-background: var(--color-neutral-99);
   --color-on-background: var(--color-neutral-10);
   --color-surface: var(--color-neutral-99);
@@ -321,6 +380,23 @@
   --color-hover-variant: rgba(202, 190, 255, 8%); // 8% Primary-40
   --color-pressed-variant: rgba(202, 190, 255, 12%); // 12% Primary-40
   --color-focused-variant: rgba(202, 190, 255, 16%); // 16% Primary-40
+  --color-env-tag-development: rgba(202, 190, 255, 32%);
+  --color-env-tag-staging: rgba(235, 153, 24, 36%);
+  --color-env-tag-production: rgba(104, 190, 108, 36%);
+  --color-specific-icon-bg: rgba(247, 248, 248, 12%);
+  --color-specific-toggle-off-enable: var(--color-neutral-90);
+  --color-specific-unselected-disabled: var(--color-hover); // 8% Neutral-10
+  --color-specific-selected-disabled: var(--color-primary-80);
+  --color-specific-focused-inside: var(--color-primary-40);
+  --color-specific-focused-outside: rgba(#cabeff, 32%); // 32% Primary-40
+  --color-specific-button-icon: rgba(255, 255, 255, 60%); // 60% static white
+  --color-overlay-primary-hover: rgba(202, 190, 255, 8%); // 8% Primary-40
+  --color-overlay-primary-pressed: rgba(202, 190, 255, 12%); // 12% Primary-40
+  --color-function-n-overlay-primary-focused: rgba(202, 190, 255, 16%); // 16% Primary-40
+  --color-overlay-danger-hover: rgba(186, 27, 27, 8%); // 8% Error-40
+  --color-overlay-dark-bg-hover: rgba(255, 255, 255, 12%); // 12% static white
+  --color-overlay-dark-bg-pressed: rgba(255, 255, 255, 18%); // 18% static white
+  --color-overlay-dark-bg-focused: rgba(255, 255, 255, 24%); // 24% static white
 
   // Shadows
   --shadow-1: 0 4px 8px rgba(0, 0, 0, 8%);
@@ -335,9 +411,38 @@
   --color-danger-focused: rgba(255, 180, 169, 16%); // 16% Error-40
   --color-tooltip-background: var(--color-surface-4);
   --color-tooltip-text: var(--color-neutral-10);
-  --color-overlay: rgba(0, 0, 0, 30%);
+  --color-overlay: rgba(0, 0, 0, 70%); // 70% Neutral-100
+  --color-overlay-default-focused: rgba(247, 248, 248, 16%);
   --color-drawer-overlay: rgba(0, 0, 0, 60%);
   --color-guide-dropdown-background: var(--color-neutral-variant-80);
   --color-guide-dropdown-border: var(--color-neutral-variant-70);
   --color-skeleton-shimmer-rgb: 42, 44, 50; // rgb of Layer-1
+  --color-specific-tag-upsell: var(--color-primary-70);
+  --color-specific-tag-test: var(--color-tertiary-80);
+  --color-specific-toggle-thumb-disabled: #ffffff4d;
+
+  // Background
+  --color-bg-body-base: var(--color-neutral-100);
+  --color-bg-body: var(--color-surface);
+  --color-bg-body-overlay: var(--color-surface-2);
+  --color-bg-layer-1:
+    linear-gradient(0deg, rgba(202, 190, 255, 8%), rgba(202, 190, 255, 8%)),
+    linear-gradient(0deg, rgba(196, 199, 199, 2%), rgba(196, 199, 199, 2%)),
+    #191c1d;
+  --color-bg-layer-2: var(--color-surface-4);
+  --color-bg-float-base: var(--color-neutral-100);
+  --color-bg-float: var(--color-surface-3);
+  --color-bg-float-overlay: var(--color-surface-4);
+  --color-bg-mask: rgba(0, 0, 0, 60%); // 60% --color-neutral-100;
+  --color-bg-toast: var(--color-neutral-80);
+  --color-bg-state-unselected: var(--color-neutral-90);
+  --color-bg-state-disabled: rgba(247, 248, 248, 8%); // 8% --color-neutral-10
+  --color-bg-info-tag: var(--color-neutral-variant-90);
+
+  // code editor
+  --color-code-bg: #090613;
+  --color-code-bg-float: #232439;
+  --color-code-white: #f7f8f8;
+  --color-code-grey: #adaab4;
+  --color-code-dark-bg-focused: rgba(255, 255, 255, 24%);
 }

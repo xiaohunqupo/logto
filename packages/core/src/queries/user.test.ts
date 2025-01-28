@@ -1,18 +1,29 @@
 import { Users } from '@logto/schemas';
-import { convertToIdentifiers } from '@logto/shared';
-import { createMockPool, createMockQueryResult, sql } from 'slonik';
+import { createMockPool, createMockQueryResult, sql } from '@silverhand/slonik';
+import Sinon from 'sinon';
 
 import { mockUser } from '#src/__mocks__/index.js';
-import envSet from '#src/env-set/index.js';
+import { EnvSet } from '#src/env-set/index.js';
 import { DeletionError } from '#src/errors/SlonikError/index.js';
+import { convertToIdentifiers } from '#src/utils/sql.js';
 import type { QueryType } from '#src/utils/test-utils.js';
 import { expectSqlAssert } from '#src/utils/test-utils.js';
 
-import {
+const { jest } = import.meta;
+
+const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
+
+const pool = createMockPool({
+  query: async (sql, values) => {
+    return mockQuery(sql, values);
+  },
+});
+
+const { createUserQueries } = await import('./user.js');
+const {
   findUserByUsername,
   findUserByEmail,
   findUserByPhone,
-  findUserById,
   findUserByIdentity,
   hasUser,
   hasUserWithId,
@@ -22,27 +33,27 @@ import {
   updateUserById,
   deleteUserById,
   deleteUserIdentity,
-} from './user.js';
+} = createUserQueries(pool);
 
-const { jest } = import.meta;
-
-const mockQuery: jest.MockedFunction<QueryType> = jest.fn();
-
-jest.spyOn(envSet, 'pool', 'get').mockReturnValue(
-  createMockPool({
-    query: async (sql, values) => {
-      return mockQuery(sql, values);
-    },
-  })
-);
+const stubIsCaseSensitiveUsername = (isCaseSensitiveUsername: boolean) =>
+  Sinon.stub(EnvSet, 'values').value({
+    ...EnvSet.values,
+    isCaseSensitiveUsername,
+  });
 
 describe('user query', () => {
+  beforeEach(() => {
+    stubIsCaseSensitiveUsername(true);
+  });
+
   const { table, fields } = convertToIdentifiers(Users);
-  const dbvalue = {
+  const databaseValue = {
     ...mockUser,
-    roleNames: JSON.stringify(mockUser.roleNames),
+    profile: JSON.stringify({}),
     identities: JSON.stringify(mockUser.identities),
     customData: JSON.stringify(mockUser.customData),
+    logtoConfig: JSON.stringify(mockUser.logtoConfig),
+    mfaVerifications: JSON.stringify(mockUser.mfaVerifications),
   };
 
   it('findUserByUsername', async () => {
@@ -56,11 +67,28 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([mockUser.username]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await expect(findUserByUsername(mockUser.username!)).resolves.toEqual(dbvalue);
+    await expect(findUserByUsername(mockUser.username!)).resolves.toEqual(databaseValue);
+  });
+
+  it('findUserByUsername (case insensitive)', async () => {
+    stubIsCaseSensitiveUsername(false);
+    const expectSql = sql`
+      select ${sql.join(Object.values(fields), sql`,`)}
+      from ${table}
+      where lower(${fields.username})=lower($1)
+    `;
+
+    mockQuery.mockImplementationOnce(async (sql, values) => {
+      expectSqlAssert(sql, expectSql.sql);
+      expect(values).toEqual([mockUser.username]);
+
+      return createMockQueryResult([databaseValue]);
+    });
+
+    await expect(findUserByUsername(mockUser.username!)).resolves.toEqual(databaseValue);
   });
 
   it('findUserByEmail', async () => {
@@ -74,11 +102,10 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([mockUser.primaryEmail]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await expect(findUserByEmail(mockUser.primaryEmail!)).resolves.toEqual(dbvalue);
+    await expect(findUserByEmail(mockUser.primaryEmail!)).resolves.toEqual(databaseValue);
   });
 
   it('findUserByPhone', async () => {
@@ -92,28 +119,10 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([mockUser.primaryPhone]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await expect(findUserByPhone(mockUser.primaryPhone!)).resolves.toEqual(dbvalue);
-  });
-
-  it('findUserById', async () => {
-    const expectSql = sql`
-      select ${sql.join(Object.values(fields), sql`,`)}
-      from ${table}
-      where ${fields.id}=$1
-    `;
-
-    mockQuery.mockImplementationOnce(async (sql, values) => {
-      expectSqlAssert(sql, expectSql.sql);
-      expect(values).toEqual([mockUser.id]);
-
-      return createMockQueryResult([dbvalue]);
-    });
-
-    await expect(findUserById(mockUser.id)).resolves.toEqual(dbvalue);
+    await expect(findUserByPhone(mockUser.primaryPhone!)).resolves.toEqual(databaseValue);
   });
 
   it('findUserByIdentity', async () => {
@@ -129,10 +138,10 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([mockUser.id]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
-    await expect(findUserByIdentity(target, mockUser.id)).resolves.toEqual(dbvalue);
+    await expect(findUserByIdentity(target, mockUser.id)).resolves.toEqual(databaseValue);
   });
 
   it('hasUser', async () => {
@@ -151,7 +160,26 @@ describe('user query', () => {
       return createMockQueryResult([{ exists: true }]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    await expect(hasUser(mockUser.username!)).resolves.toEqual(true);
+  });
+
+  it('hasUser (case insensitive)', async () => {
+    stubIsCaseSensitiveUsername(false);
+    const expectSql = sql`
+      SELECT EXISTS(
+        select ${fields.id}
+        from ${table}
+        where lower(${fields.username})=lower($1)
+      )
+    `;
+
+    mockQuery.mockImplementationOnce(async (sql, values) => {
+      expectSqlAssert(sql, expectSql.sql);
+      expect(values).toEqual([mockUser.username]);
+
+      return createMockQueryResult([{ exists: true }]);
+    });
+
     await expect(hasUser(mockUser.username!)).resolves.toEqual(true);
   });
 
@@ -190,7 +218,6 @@ describe('user query', () => {
       return createMockQueryResult([{ exists: true }]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     await expect(hasUserWithEmail(mockUser.primaryEmail!)).resolves.toEqual(true);
   });
 
@@ -210,7 +237,6 @@ describe('user query', () => {
       return createMockQueryResult([{ exists: true }]);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     await expect(hasUserWithPhone(mockUser.primaryPhone!)).resolves.toEqual(true);
   });
 
@@ -249,10 +275,10 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([username, id]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
-    await expect(updateUserById(id, { username })).resolves.toEqual(dbvalue);
+    await expect(updateUserById(id, { username })).resolves.toEqual(databaseValue);
   });
 
   it('deleteUserById', async () => {
@@ -266,7 +292,7 @@ describe('user query', () => {
       expectSqlAssert(sql, expectSql.sql);
       expect(values).toEqual([id]);
 
-      return createMockQueryResult([dbvalue]);
+      return createMockQueryResult([databaseValue]);
     });
 
     await deleteUserById(id);
@@ -296,9 +322,11 @@ describe('user query', () => {
     const { connector1, ...restIdentities } = mockUser.identities;
     const finalDbvalue = {
       ...mockUser,
-      roleNames: JSON.stringify(mockUser.roleNames),
+      profile: JSON.stringify({}),
       identities: JSON.stringify(restIdentities),
       customData: JSON.stringify(mockUser.customData),
+      logtoConfig: JSON.stringify(mockUser.logtoConfig),
+      mfaVerifications: JSON.stringify(mockUser.mfaVerifications),
     };
 
     const expectSql = sql`

@@ -1,17 +1,18 @@
 const log_details = {
-  back_to_logs: 'Zurück zu Audit Logs',
-  back_to_user: 'Zurück zu {{name}}',
+  page_title: 'Audit Log Details',
+  back_to_logs: 'Zurück zu audit logs',
+  back_to: 'Zurück zu {{name}}',
   success: 'Erfolgreich',
   failed: 'Fehlgeschlagen',
-  event_key: 'Event Key', // UNTRANSLATED
+  event_key: 'Event Schlüssel',
   application: 'Anwendung',
-  ip_address: 'IP Adresse',
+  ip_address: 'IP-Adresse',
   user: 'Benutzer',
-  log_id: 'Log ID',
+  log_id: 'Log-ID',
   time: 'Zeit',
-  user_agent: 'User agent',
+  user_agent: 'User-Agent',
   tab_details: 'Details',
   raw_data: 'Rohe Daten',
 };
 
-export default log_details;
+export default Object.freeze(log_details);

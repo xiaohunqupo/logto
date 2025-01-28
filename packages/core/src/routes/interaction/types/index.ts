@@ -1,17 +1,18 @@
+import type { SocialUserInfo } from '@logto/connector-kit';
 import type {
   UsernamePasswordPayload,
   EmailPasswordPayload,
-  EmailPasscodePayload,
   PhonePasswordPayload,
-  PhonePasscodePayload,
   InteractionEvent,
+  SocialEmailPayload,
+  SocialPhonePayload,
+  Profile,
+  BindMfa,
+  VerifyMfaResult,
 } from '@logto/schemas';
 import type { z } from 'zod';
 
-import type { SocialUserInfo } from '#src/connectors/types.js';
-
 import type {
-  sendPasscodePayloadGuard,
   socialAuthorizationUrlPayloadGuard,
   accountIdIdentifierGuard,
   verifiedEmailIdentifierGuard,
@@ -19,10 +20,6 @@ import type {
   socialIdentifierGuard,
   identifierGuard,
   anonymousInteractionResultGuard,
-  verifiedRegisterInteractionResultGuard,
-  verifiedSignInteractionResultGuard,
-  verifiedForgotPasswordInteractionResultGuard,
-  forgotPasswordProfileGuard,
 } from './guard.js';
 
 /* Payload Types */
@@ -31,10 +28,13 @@ export type PasswordIdentifierPayload =
   | EmailPasswordPayload
   | PhonePasswordPayload;
 
-export type PasscodeIdentifierPayload = EmailPasscodePayload | PhonePasscodePayload;
+export type SocialVerifiedIdentifierPayload = SocialEmailPayload | SocialPhonePayload;
 
-export type SendPasscodePayload = z.infer<typeof sendPasscodePayloadGuard>;
-
+/**
+ * Legacy type for the interaction API.
+ * Use the latest experience API instead.
+ * Moved to `@logto/schemas`
+ */
 export type SocialAuthorizationUrlPayload = z.infer<typeof socialAuthorizationUrlPayloadGuard>;
 
 /* Interaction Types */
@@ -49,10 +49,7 @@ export type SocialIdentifier = z.infer<typeof socialIdentifierGuard>;
 
 export type Identifier = z.infer<typeof identifierGuard>;
 
-// Profile
-export type ForgotPasswordProfile = z.infer<typeof forgotPasswordProfileGuard>;
-
-// Interaction
+// Interaction Result
 export type AnonymousInteractionResult = z.infer<typeof anonymousInteractionResultGuard>;
 
 export type RegisterInteractionResult = Omit<AnonymousInteractionResult, 'event'> & {
@@ -67,27 +64,48 @@ export type ForgotPasswordInteractionResult = Omit<AnonymousInteractionResult, '
   event: InteractionEvent.ForgotPassword;
 };
 
+// Intermediate interaction  result
 export type AccountVerifiedInteractionResult =
-  | (Omit<SignInInteractionResult, 'accountId'> & {
+  | (Omit<SignInInteractionResult, 'accountId' | 'identifiers'> & {
       accountId: string;
+      identifiers: Identifier[];
     })
-  | (Omit<ForgotPasswordInteractionResult, 'accountId'> & {
+  | (Omit<ForgotPasswordInteractionResult, 'accountId' | 'identifiers'> & {
       accountId: string;
+      identifiers: Identifier[];
     });
 
 export type IdentifierVerifiedInteractionResult =
   | RegisterInteractionResult
   | AccountVerifiedInteractionResult;
 
-export type VerifiedRegisterInteractionResult = z.infer<
-  typeof verifiedRegisterInteractionResultGuard
->;
+export type VerifiedRegisterInteractionResult = {
+  event: InteractionEvent.Register;
+  profile?: Profile;
+  identifiers?: Identifier[];
+  bindMfas?: BindMfa[];
+  pendingAccountId?: string;
+  mfaSkipped?: boolean;
+};
 
-export type VerifiedSignInInteractionResult = z.infer<typeof verifiedSignInteractionResultGuard>;
+export type VerifiedSignInInteractionResult = {
+  event: InteractionEvent.SignIn;
+  accountId: string;
+  identifiers: Identifier[];
+  profile?: Profile;
+  bindMfas?: BindMfa[];
+  verifiedMfa?: VerifyMfaResult;
+  mfaSkipped?: boolean;
+};
 
-export type VerifiedForgotPasswordInteractionResult = z.infer<
-  typeof verifiedForgotPasswordInteractionResultGuard
->;
+export type VerifiedForgotPasswordInteractionResult = {
+  event: InteractionEvent.ForgotPassword;
+  accountId: string;
+  identifiers: Identifier[];
+  profile: {
+    password: string;
+  };
+};
 
 export type VerifiedInteractionResult =
   | VerifiedRegisterInteractionResult

@@ -1,11 +1,11 @@
-import type { ConnectorResponse, ConnectorType } from '@logto/schemas';
+import type { ConnectorType, ConnectorResponse } from '@logto/schemas';
 import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 
 import type { RequestError } from './use-api';
 
 const useEnabledConnectorTypes = () => {
-  const { data: connectors } = useSWR<ConnectorResponse[], RequestError>('/api/connectors');
+  const { data: connectors } = useSWR<ConnectorResponse[], RequestError>('api/connectors');
 
   const enabledConnectorTypes = useMemo(
     () => connectors?.map(({ type }) => type) ?? [],

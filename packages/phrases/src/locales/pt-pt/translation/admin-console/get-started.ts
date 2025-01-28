@@ -1,27 +1,42 @@
 const get_started = {
-  progress: 'Guia de primeiros passos: {{completed}}/{{total}}',
-  progress_dropdown_title: 'Algumas coisas que pode fazer...',
-  title: 'Como deseja começar a usar o Logto?',
-  subtitle_part1: 'Algumas coisas que pode fazer para obter rapidamente o valor do Logto',
-  subtitle_part2: 'Acabei com esta configuração. ',
-  hide_this: 'Ocultar isto',
-  confirm_message: 'Tem a certeza que deseja ocultar esta página? Esta ação não pode ser desfeita.',
-  card1_title: 'Confira a demonstração',
-  card1_subtitle: 'Experimente a experiência de login do Logto agora para ver como funciona',
-  card2_title: 'Crie e integre a primeira aplicação',
-  card2_subtitle:
-    'Configure um aplicativo móvel, de página única ou tradicional para usar o Logto para autenticação',
-  card3_title: 'Personalize a experiência de login',
-  card3_subtitle:
-    'Personalize a interface de login para corresponder a sua marca e visualize em tempo rea',
-  card4_title: 'Configure um conector de SMS/Email',
-  card4_subtitle:
-    'Experimente o login sem senha com número de telefone ou email para permitir uma experiência do cliente segura e sem atritos',
-  card5_title: 'Adicione um conector social',
-  card5_subtitle: 'Permita que os seus clientes entrem com as identidades sociais em um clique',
-  card6_title: 'Outras leituras',
-  card6_subtitle:
-    'Confira a nossa documentação passo a passo baseados em cenários sem conceitos tediosos',
+  page_title: 'Começar',
+  title: 'Algo para explorar para o ajudar a ter sucesso',
+  subtitle: 'Algumas coisas que você pode fazer para obter rapidamente valor do Logto',
+  develop: {
+    title: 'Desenvolver: Dedique 5 minutos para integrar o seu aplicativo',
+    title_cloud: 'Desenvolver: Integre o seu aplicativo de forma segura em minutos',
+    subtitle_cloud:
+      'Ou leve 5 minutos para integrar o seu aplicativo com os nossos SDKs predefinidos e tutoriais.',
+  },
+  customize: {
+    title: 'Personalizar: Ofereça uma ótima experiência de login',
+    preview: {
+      title:
+        'Verifique a pré-visualização ao vivo da experiência de login que você acabou de personalizar',
+      subtitle: 'Experimente agora a experiência de login do Logto para ver como funciona',
+    },
+    connector: {
+      title: 'Adicione mais conectores para suportar mais métodos de login social',
+      subtitle:
+        'Experimente o login sem senha e ofereça uma experiência segura e sem atritos para seus clientes',
+    },
+    continue_customizing: 'Continue personalizando',
+    try_now: 'Experimente agora',
+    add_more: 'Adicione mais',
+  },
+  secure: {
+    title: 'Segurança: Proteja seus recursos',
+  },
+  manage: {
+    title: 'Gerenciar: Defina o controle de acesso para seu produto e usuários',
+    rbac: {
+      title: 'Adicione controle de acesso baseado em função para proteger seus recursos',
+      subtitle:
+        'Controle seu recurso por meio de autorização de função escalável para diversos casos de uso.',
+    },
+    create_roles: 'Criar funções',
+  },
+  view_all: 'Ver tudo →',
 };
 
-export default get_started;
+export default Object.freeze(get_started);

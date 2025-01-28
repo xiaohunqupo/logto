@@ -42,14 +42,11 @@ Connector is the standard way in Logto to connect third-party services like SMS,
 
 > **Note**
 >
-> We've moved our connectors to an [independent repo](https://github.com/logto-io/connectors).
+> You can find all official connectors [here](https://github.com/logto-io/logto/tree/master/packages/connectors).
 
 Before starting the work, join our [Discord channel](https://discord.gg/cyWnux4cH6) or [email us](mailto:contact@logto.io) to double-check if there's an ongoing project for your desired connector. We'll confirm with you your need and the status quo.
 
-Since a new connector means a new Node.js package, we encourage you to separate your work into two Pull Requests:
-
-1. The initial setup of the connector package, including `package.json`, base dependencies and scripts (build, lint, etc.), and the connector class skeleton (a class extends the base class, but no implementation).
-2. The full connector implementation with unit tests.
+You can read this [documentation](https://docs.logto.io/docs/recipes/create-your-connector/) which describes how to implement and test a connector through concrete examples.
 
 ### Core features
 
@@ -67,7 +64,7 @@ We use the monorepo approach for development. Since pnpm supports monorepo natur
 
 You'll need these installed to proceed:
 
-- [Node.js](https://nodejs.org/) `^16.13.0`
+- [Node.js](https://nodejs.org/) `^18.12.0`
 - [pnpm](https://pnpm.io/) `^7.0`
 - A [Postgres](https://postgresql.org/) `^14.0` instance
 
@@ -76,10 +73,10 @@ You'll need these installed to proceed:
 Clone the repo https://github.com/logto-io/logto in the way you like, then execute the command below in the project root:
 
 ```bash
-pnpm i
+pnpm i && pnpm prepack
 ```
 
-It may take a while to install dependencies.
+`pnpm i` installs dependencies, which might take some time, and `pnpm prepack` builds the necessary workspace dependencies, enabling editors such as VSCode to locate their declarations.
 
 ### Set up database
 
@@ -101,7 +98,9 @@ If you are developing something with database alterations, see [packages/schemas
 
 ### Add connectors (optional)
 
-Run `pnpm cli connector add --official -p .` to add all Logto official connectors. See [Manage connectors](https://docs.logto.io/docs/tutorials/using-cli/manage-connectors) for details about managing connectors via CLI.
+Run `logto connector link -p .` to link all local connectors. You can also use `logto connector add <name> -p .` to install connector from NPM.
+
+See [Manage connectors](https://docs.logto.io/docs/references/using-cli/manage-connectors) for details about managing connectors via CLI.
 
 ## Start dev
 

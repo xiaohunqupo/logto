@@ -1,11 +1,11 @@
 @use '@/scss/underscore' as _;
 
 .number {
-  font: var(--font-headline-small);
+  font: var(--font-headline-3);
 }
 
 .delta {
-  font: var(--font-title-medium);
+  font: var(--font-title-2);
   color: var(--color-success-50);
   display: flex;
   align-items: center;
@@ -19,7 +19,7 @@
   flex: 1;
 
   &:not(:last-child) {
-    margin-right: _.unit(4);
+    margin-inline-end: _.unit(4);
   }
 
   &.bordered {
@@ -29,13 +29,13 @@
   }
 
   .title {
-    font: var(--font-title-medium);
+    font: var(--font-title-2);
     margin-bottom: 24px;
     display: flex;
     align-items: center;
 
     .toggleTipButton {
-      margin-left: _.unit(0.5);
+      margin-inline-start: _.unit(0.5);
     }
   }
 
@@ -52,7 +52,7 @@
     padding: 0;
 
     .title {
-      font: var(--font-title-medium);
+      font: var(--font-title-2);
       margin-bottom: _.unit(6);
     }
 
@@ -61,7 +61,7 @@
       align-items: center;
 
       .number {
-        margin-right: _.unit(2);
+        margin-inline-end: _.unit(2);
         flex: 0;
       }
     }

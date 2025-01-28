@@ -1,25 +1,38 @@
 const get_started = {
-  progress: '시작 가이드: {{completed}}/{{total}}',
-  progress_dropdown_title: '해야할 것들...',
-  title: 'Logto를 어떻게 시작할까요?',
-  subtitle_part1: 'Logto의 가치를 얻기 위해 해야할 것들이 있어요.',
-  subtitle_part2: '설정을 마칠게요 ',
-  hide_this: '가리기',
-  confirm_message: '정말로 이 페이지를 가릴까요? 이 행동은 취소할 수 없어요.',
-  card1_title: '체험해보기',
-  card1_subtitle: 'Logto 로그인 경험을 체험해보세요.',
-  card2_title: '첫 어플리케이션 생성 및 연동해보기',
-  card2_subtitle: '모바일 앱 및 Single Page, Tranditional 웹에 Logto 인증을 적용해보세요.',
-  card3_title: '로그인 경험 커스터마이징하기',
-  card3_subtitle: '로그인 화면을 브랜드에 맞게 커스터마이징 그리고 실시간으로 확인해보세요.',
-  card4_title: 'SMS/이메일 연동하기',
-  card4_subtitle:
-    'SMS 또는 이메일을 통해 비밀번호가 없이, 그리고 더욱 안전한 로그인 경험을 사용자에게 제공해보세요.',
-  card5_title: '소셜 연동',
-  card5_subtitle:
-    '사용자의 소셜 정보를 통해 한 번의 클릭으로 로그인할 수 있는 경험을 사용자에게 제공해보세요.',
-  card6_title: '더욱 나아가서',
-  card6_subtitle: '복잡하지 않은 단계별 시나리오 문서를 확인해보세요.',
+  page_title: '시작하기',
+  title: '성공하는 데 도움이 될 탐색 항목',
+  subtitle: 'Logto의 가치를 빠르게 얻을 수 있는 몇 가지 방법',
+  develop: {
+    title: '개발: 앱을 통합하는 데 5분이면 충분합니다',
+    title_cloud: '개발: 몇 분 안에 앱을 안전하게 통합하기',
+    subtitle_cloud: '아니면 미리 만들어진 SDK와 자습서로 앱을 5분만에 통합해 보세요.',
+  },
+  customize: {
+    title: '사용자 정의: 훌륭한 로그인 경험 전달하기',
+    preview: {
+      title: '방금 사용자 정의한 로그인 경험의 실시간 미리보기 확인하기',
+      subtitle: '작동 방식을 확인하려면 지금 Logto 로그인 경험을 시도해보세요',
+    },
+    connector: {
+      title: '더 많은 커넥터 추가하여 더 많은 소셜 로그인 방식 지원하기',
+      subtitle: '비밀번호 없는 로그인을 시도하고 고객에게 안전하고 원활한 경험을 제공하세요',
+    },
+    continue_customizing: '사용자 정의 계속하기',
+    try_now: '지금 시도해보세요',
+    add_more: '더 추가하기',
+  },
+  secure: {
+    title: '보안: 리소스 보호',
+  },
+  manage: {
+    title: '관리: 제품 및 사용자에 대한 액세스 제어 정의',
+    rbac: {
+      title: '롤 기반 액세스 제어 추가하여 리소스 보호',
+      subtitle: '다양한 사용 사례에 대해 확장 가능한 역할 권한부여를 통해 리소스 제어',
+    },
+    create_roles: '역할 생성',
+  },
+  view_all: '모두 보기 →',
 };
 
-export default get_started;
+export default Object.freeze(get_started);

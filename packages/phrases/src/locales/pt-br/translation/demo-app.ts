@@ -1,15 +1,13 @@
 const demo_app = {
-  notification:
-    'Use sua conta de administrador padrão ou crie uma nova conta para entrar no aplicativo de demonstração.',
-  title: 'Você se inscreveu com sucesso no aplicativo de demonstração!',
-  subtitle: 'Aqui estão suas informações de login:',
+  title: "You've successfully signed in the live preview!",
+  subtitle: 'Aqui está a sua informação de usuário:',
   username: 'Nome de usuário: ',
   user_id: 'ID do usuário: ',
-  sign_out: 'Sair do aplicativo de demonstração',
+  sign_out: 'Sair da Visualização ao Vivo',
   continue_explore: 'Ou continuar a navegação',
   customize_sign_in_experience: 'Personalize a experiência de login',
-  enable_passwordless: 'Ativar sem senha',
-  add_social_connector: 'Adicionar conector login social',
+  enable_passwordless: 'Ativar acesso livre',
+  add_social_connector: 'Adicionar conector social',
 };
 
-export default demo_app;
+export default Object.freeze(demo_app);

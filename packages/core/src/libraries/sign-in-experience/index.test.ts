@@ -1,89 +1,80 @@
 import type { LanguageTag } from '@logto/language-kit';
-import { builtInLanguages } from '@logto/phrases-ui';
+import { builtInLanguages } from '@logto/phrases-experience';
 import type { CreateSignInExperience, SignInExperience } from '@logto/schemas';
-import { BrandingStyle } from '@logto/schemas';
-import { createMockUtils } from '@logto/shared/esm';
+import { TtlCache } from '@logto/shared';
 
 import {
-  socialTarget01,
-  socialTarget02,
-  mockBranding,
+  mockGithubConnector,
+  mockGoogleConnector,
   mockSignInExperience,
   mockSocialConnectors,
+  socialTarget01,
+  socialTarget02,
+  wellConfiguredSsoConnector,
 } from '#src/__mocks__/index.js';
+import { WellKnownCache } from '#src/caches/well-known.js';
 import RequestError from '#src/errors/RequestError/index.js';
+import { ssoConnectorFactories } from '#src/sso/index.js';
+import {
+  mockLogtoConfigsLibrary,
+  mockSsoConnectorLibrary,
+} from '#src/test-utils/mock-libraries.js';
+
+import { createCloudConnectionLibrary } from '../cloud-connection.js';
+import { createConnectorLibrary } from '../connector.js';
 
 const { jest } = import.meta;
-const { mockEsm } = createMockUtils(jest);
 
 const allCustomLanguageTags: LanguageTag[] = [];
 
-const { findAllCustomLanguageTags } = mockEsm('#src/queries/custom-phrase.js', () => ({
+const customPhrases = {
   findAllCustomLanguageTags: jest.fn(async () => allCustomLanguageTags),
-}));
-const { getLogtoConnectors } = mockEsm('#src/connectors.js', () => ({
-  getLogtoConnectors: jest.fn(),
-}));
-const { findDefaultSignInExperience, updateDefaultSignInExperience } = mockEsm(
-  '#src/queries/sign-in-experience.js',
-  () => ({
-    findDefaultSignInExperience: jest.fn(),
-    updateDefaultSignInExperience: jest.fn(
-      async (data: Partial<CreateSignInExperience>): Promise<SignInExperience> => ({
-        ...mockSignInExperience,
-        ...data,
-      })
-    ),
-  })
-);
+};
+const { findAllCustomLanguageTags } = customPhrases;
 
-const { validateBranding, validateLanguageInfo, removeUnavailableSocialConnectorTargets } =
-  await import('./index.js');
+const signInExperiences = {
+  findDefaultSignInExperience: jest.fn(),
+  updateDefaultSignInExperience: jest.fn(
+    async (data: Partial<CreateSignInExperience>): Promise<SignInExperience> => ({
+      ...mockSignInExperience,
+      ...data,
+    })
+  ),
+};
+const { findDefaultSignInExperience, updateDefaultSignInExperience } = signInExperiences;
+
+const { MockQueries } = await import('#src/test-utils/tenant.js');
+
+const queries = new MockQueries({
+  customPhrases,
+  signInExperiences,
+});
+const connectorLibrary = createConnectorLibrary(queries, {
+  getClient: jest.fn(),
+});
+const cloudConnection = createCloudConnectionLibrary({
+  ...mockLogtoConfigsLibrary,
+  getCloudConnectionData: jest.fn().mockResolvedValue({
+    appId: 'appId',
+    appSecret: 'appSecret',
+    resource: 'resource',
+  }),
+});
+
+const getLogtoConnectors = jest.spyOn(connectorLibrary, 'getLogtoConnectors');
+
+const { createSignInExperienceLibrary } = await import('./index.js');
+const { validateLanguageInfo, removeUnavailableSocialConnectorTargets, getFullSignInExperience } =
+  createSignInExperienceLibrary(
+    queries,
+    connectorLibrary,
+    mockSsoConnectorLibrary,
+    cloudConnection,
+    new WellKnownCache('foo', new TtlCache())
+  );
 
 beforeEach(() => {
   jest.clearAllMocks();
-});
-
-describe('validate branding', () => {
-  test('should throw when the UI style contains the slogan and slogan is empty', () => {
-    expect(() => {
-      validateBranding({
-        ...mockBranding,
-        style: BrandingStyle.Logo_Slogan,
-        slogan: '',
-      });
-    }).toMatchError(new RequestError('sign_in_experiences.empty_slogan'));
-  });
-
-  test('should throw when the logo is empty', () => {
-    expect(() => {
-      validateBranding({
-        ...mockBranding,
-        style: BrandingStyle.Logo,
-        logoUrl: ' ',
-        slogan: '',
-      });
-    }).toMatchError(new RequestError('sign_in_experiences.empty_logo'));
-  });
-
-  test('should throw when the UI style contains the slogan and slogan is blank', () => {
-    expect(() => {
-      validateBranding({
-        ...mockBranding,
-        style: BrandingStyle.Logo_Slogan,
-        slogan: ' \t\n',
-      });
-    }).toMatchError(new RequestError('sign_in_experiences.empty_slogan'));
-  });
-
-  test('should not throw when the UI style does not contain the slogan and slogan is empty', () => {
-    expect(() => {
-      validateBranding({
-        ...mockBranding,
-        style: BrandingStyle.Logo,
-      });
-    }).not.toThrow();
-  });
 });
 
 describe('validate language info', () => {
@@ -138,7 +129,7 @@ describe('validate language info', () => {
 });
 
 describe('remove unavailable social connector targets', () => {
-  test('should remove unavailable social connector targets in sign-in experience', async () => {
+  it('should remove unavailable social connector targets in sign-in experience', async () => {
     const mockSocialConnectorTargets = mockSocialConnectors.map(
       ({ metadata: { target } }) => target
     );
@@ -152,5 +143,147 @@ describe('remove unavailable social connector targets', () => {
     expect(updateDefaultSignInExperience).toBeCalledWith({
       socialSignInConnectorTargets: [socialTarget01, socialTarget02],
     });
+  });
+});
+
+describe('getFullSignInExperience()', () => {
+  it('should return full sign-in experience', async () => {
+    findDefaultSignInExperience.mockResolvedValueOnce(mockSignInExperience);
+    getLogtoConnectors.mockResolvedValueOnce(mockSocialConnectors);
+    mockSsoConnectorLibrary.getAvailableSsoConnectors.mockResolvedValueOnce([
+      wellConfiguredSsoConnector,
+    ]);
+
+    const fullSignInExperience = await getFullSignInExperience({ locale: 'en' });
+    const connectorFactory = ssoConnectorFactories[wellConfiguredSsoConnector.providerName];
+
+    expect(fullSignInExperience).toStrictEqual({
+      ...mockSignInExperience,
+      socialConnectors: [],
+      socialSignInConnectorTargets: ['github', 'facebook', 'wechat'],
+      forgotPassword: {
+        email: false,
+        phone: false,
+      },
+      ssoConnectors: [
+        {
+          id: wellConfiguredSsoConnector.id,
+          connectorName: connectorFactory.name.en,
+          logo: connectorFactory.logo,
+          darkLogo: connectorFactory.logoDark,
+        },
+      ],
+      isDevelopmentTenant: false,
+      googleOneTap: undefined,
+    });
+  });
+
+  it('should return full sign-in experience with google one tap', async () => {
+    findDefaultSignInExperience.mockResolvedValueOnce({
+      ...mockSignInExperience,
+      socialSignInConnectorTargets: ['github', 'facebook', 'google'],
+    });
+    getLogtoConnectors.mockResolvedValueOnce([mockGoogleConnector, mockGithubConnector]);
+    mockSsoConnectorLibrary.getAvailableSsoConnectors.mockResolvedValueOnce([
+      wellConfiguredSsoConnector,
+    ]);
+
+    const fullSignInExperience = await getFullSignInExperience({ locale: 'en' });
+    const connectorFactory = ssoConnectorFactories[wellConfiguredSsoConnector.providerName];
+
+    expect(fullSignInExperience).toStrictEqual({
+      ...mockSignInExperience,
+      socialConnectors: [
+        { ...mockGithubConnector.metadata, id: mockGithubConnector.dbEntry.id },
+        { ...mockGoogleConnector.metadata, id: mockGoogleConnector.dbEntry.id },
+      ],
+      socialSignInConnectorTargets: ['github', 'facebook', 'google'],
+      forgotPassword: {
+        email: false,
+        phone: false,
+      },
+      ssoConnectors: [
+        {
+          id: wellConfiguredSsoConnector.id,
+          connectorName: connectorFactory.name.en,
+          logo: connectorFactory.logo,
+          darkLogo: connectorFactory.logoDark,
+        },
+      ],
+      isDevelopmentTenant: false,
+      googleOneTap: {
+        isEnabled: true,
+        autoSelect: true,
+        clientId: 'fake_client_id',
+        connectorId: 'google',
+      },
+    });
+  });
+});
+
+describe('get sso connectors', () => {
+  it('should return empty array if dev feature is disabled', async () => {
+    getLogtoConnectors.mockResolvedValueOnce(mockSocialConnectors);
+    findDefaultSignInExperience.mockResolvedValueOnce({
+      ...mockSignInExperience,
+      singleSignOnEnabled: false,
+    });
+
+    const { ssoConnectors } = await getFullSignInExperience({ locale: 'en' });
+
+    expect(mockSsoConnectorLibrary.getAvailableSsoConnectors).not.toBeCalled();
+
+    expect(ssoConnectors).toEqual([]);
+  });
+
+  it('should return sso connectors metadata', async () => {
+    getLogtoConnectors.mockResolvedValueOnce(mockSocialConnectors);
+    findDefaultSignInExperience.mockResolvedValueOnce(mockSignInExperience);
+
+    mockSsoConnectorLibrary.getAvailableSsoConnectors.mockResolvedValueOnce([
+      wellConfiguredSsoConnector,
+    ]);
+
+    const { ssoConnectors } = await getFullSignInExperience({ locale: 'jp' });
+
+    const connectorFactory = ssoConnectorFactories[wellConfiguredSsoConnector.providerName];
+
+    expect(ssoConnectors).toEqual([
+      {
+        id: wellConfiguredSsoConnector.id,
+        connectorName: connectorFactory.name.en,
+        logo: connectorFactory.logo,
+        darkLogo: connectorFactory.logoDark,
+      },
+    ]);
+  });
+
+  it('should return displayName if provided', async () => {
+    getLogtoConnectors.mockResolvedValueOnce(mockSocialConnectors);
+    findDefaultSignInExperience.mockResolvedValueOnce(mockSignInExperience);
+
+    const displayName = 'Logto Connector';
+
+    mockSsoConnectorLibrary.getAvailableSsoConnectors.mockResolvedValueOnce([
+      {
+        ...wellConfiguredSsoConnector,
+        branding: {
+          displayName,
+        },
+      },
+    ]);
+
+    const connectorFactory = ssoConnectorFactories[wellConfiguredSsoConnector.providerName];
+
+    const { ssoConnectors } = await getFullSignInExperience({ locale: 'en' });
+
+    expect(ssoConnectors).toEqual([
+      {
+        id: wellConfiguredSsoConnector.id,
+        connectorName: displayName,
+        logo: connectorFactory.logo,
+        darkLogo: connectorFactory.logoDark,
+      },
+    ]);
   });
 });

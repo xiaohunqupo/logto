@@ -1,18 +1,23 @@
 import type { Application } from '@logto/schemas';
-import { adminConsoleApplicationId } from '@logto/schemas';
+import { adminConsoleApplicationId, adminTenantId } from '@logto/schemas';
+import { conditional } from '@silverhand/essentials';
+import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
-import Select from '@/components/Select';
+import { isCloud } from '@/consts/env';
+import { TenantsContext } from '@/contexts/TenantsProvider';
+import Select from '@/ds-components/Select';
 
 type Props = {
-  value?: string;
-  onChange: (value?: string) => void;
+  readonly value?: string;
+  readonly onChange: (value?: string) => void;
 };
 
-const ApplicationSelector = ({ value, onChange }: Props) => {
+function ApplicationSelector({ value, onChange }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const { data } = useSWR<Application[]>('/api/applications');
+  const { currentTenantId } = useContext(TenantsContext);
+  const { data } = useSWR<Application[]>('api/applications');
   const options =
     data?.map(({ id, name }) => ({
       value: id,
@@ -23,11 +28,19 @@ const ApplicationSelector = ({ value, onChange }: Props) => {
     <Select
       isClearable
       value={value}
-      options={[{ value: adminConsoleApplicationId, title: 'Admin Console' }, ...options]}
+      options={[
+        ...(conditional(
+          isCloud &&
+            currentTenantId === adminTenantId && [
+              { value: adminConsoleApplicationId, title: 'Admin Console' },
+            ]
+        ) ?? []),
+        ...options,
+      ]}
       placeholder={t('logs.application')}
       onChange={onChange}
     />
   );
-};
+}
 
 export default ApplicationSelector;

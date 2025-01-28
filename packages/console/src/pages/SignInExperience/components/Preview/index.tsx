@@ -1,58 +1,47 @@
 import type { LanguageTag } from '@logto/language-kit';
 import { languages as uiLanguageNameMapping } from '@logto/language-kit';
-import type { ConnectorResponse, ConnectorMetadata, SignInExperience } from '@logto/schemas';
-import { ConnectorType, AppearanceMode } from '@logto/schemas';
-import { conditional } from '@silverhand/essentials';
+import { type SignInExperience, Theme } from '@logto/schemas';
 import classNames from 'classnames';
-import { format } from 'date-fns';
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 
-import PhoneInfo from '@/assets/images/phone-info.svg';
-import Select from '@/components/Select';
-import TabNav, { TabNavItem } from '@/components/TabNav';
-import type { RequestError } from '@/hooks/use-api';
+import LivePreviewButton from '@/components/LivePreviewButton';
+import SignInExperiencePreview, { ToggleUiThemeButton } from '@/components/SignInExperiencePreview';
+import { PreviewPlatform } from '@/components/SignInExperiencePreview/types';
+import Select from '@/ds-components/Select';
+import TabNav, { TabNavItem } from '@/ds-components/TabNav';
+import useConnectorGroups from '@/hooks/use-connector-groups';
 import useUiLanguages from '@/hooks/use-ui-languages';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  signInExperience?: SignInExperience;
-  className?: string;
+  readonly isLivePreviewDisabled?: boolean;
+  readonly isLivePreviewEntryInvisible?: boolean;
+  readonly isPreviewIframeDisabled?: boolean;
+  readonly signInExperience?: SignInExperience;
+  readonly className?: string;
 };
 
-const Preview = ({ signInExperience, className }: Props) => {
+function Preview({
+  isLivePreviewDisabled = false,
+  isLivePreviewEntryInvisible = false,
+  isPreviewIframeDisabled = false,
+  signInExperience,
+  className,
+}: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+  const { hasSupportNativePlatformTarget: isNativeTabEnabled } = useConnectorGroups();
   const [language, setLanguage] = useState<LanguageTag>('en');
-  const [mode, setMode] = useState<AppearanceMode>(AppearanceMode.LightMode);
-  const [platform, setPlatform] = useState<'desktopWeb' | 'mobile' | 'mobileWeb'>('desktopWeb');
-  const { data: allConnectors } = useSWR<ConnectorResponse[], RequestError>('/api/connectors');
-  const previewRef = useRef<HTMLIFrameElement>(null);
-  const { customPhrases } = useUiLanguages();
-
+  const [mode, setMode] = useState<Theme>(Theme.Light);
+  const [platform, setPlatform] = useState<PreviewPlatform>(PreviewPlatform.DesktopWeb);
   const { languages } = useUiLanguages();
 
-  const modeOptions = useMemo(() => {
-    const light = { value: AppearanceMode.LightMode, title: t('sign_in_exp.preview.light') };
-    const dark = { value: AppearanceMode.DarkMode, title: t('sign_in_exp.preview.dark') };
-
-    if (!signInExperience?.color.isDarkModeEnabled) {
-      return [light];
-    }
-
-    return [light, dark];
-  }, [signInExperience, t]);
-
   useEffect(() => {
-    if (!modeOptions[0]) {
-      return;
+    if (!signInExperience?.color.isDarkModeEnabled) {
+      setMode(Theme.Light);
     }
-
-    if (!modeOptions.some(({ value }) => value === mode)) {
-      setMode(modeOptions[0].value);
-    }
-  }, [modeOptions, mode]);
+  }, [mode, signInExperience]);
 
   const availableLanguageOptions = useMemo(() => {
     const availableLanguageTags =
@@ -78,70 +67,16 @@ const Preview = ({ signInExperience, className }: Props) => {
     }
   }, [language, availableLanguageOptions]);
 
-  const config = useMemo(() => {
-    if (!allConnectors || !signInExperience) {
-      return;
-    }
-
-    const socialConnectors = signInExperience.socialSignInConnectorTargets.reduce<
-      Array<ConnectorMetadata & { id: string }>
-    >(
-      (previous, connectorTarget) => [
-        ...previous,
-        ...allConnectors.filter(({ target }) => target === connectorTarget),
-      ],
-      []
-    );
-
-    const hasEmailConnector = allConnectors.some(({ type }) => type === ConnectorType.Email);
-
-    const hasSmsConnector = allConnectors.some(({ type }) => type === ConnectorType.Sms);
-
-    return {
-      signInExperience: {
-        ...signInExperience,
-        socialConnectors,
-        forgotPassword: {
-          email: hasEmailConnector,
-          sms: hasSmsConnector,
-        },
-      },
-      language,
-      mode,
-      platform: platform === 'desktopWeb' ? 'web' : 'mobile',
-      isNative: platform === 'mobile',
-    };
-  }, [allConnectors, language, mode, platform, signInExperience]);
-
-  const postPreviewMessage = useCallback(() => {
-    if (!config || !customPhrases) {
-      return;
-    }
-
-    previewRef.current?.contentWindow?.postMessage(
-      { sender: 'ac_preview', config },
-      window.location.origin
-    );
-  }, [config, customPhrases]);
-
-  useEffect(() => {
-    postPreviewMessage();
-
-    const iframe = previewRef.current;
-
-    iframe?.addEventListener('load', postPreviewMessage);
-
-    return () => {
-      iframe?.removeEventListener('load', postPreviewMessage);
-    };
-  }, [postPreviewMessage]);
-
   return (
     <div className={classNames(styles.preview, className)}>
       <div className={styles.header}>
         <div className={styles.title}>{t('sign_in_exp.preview.title')}</div>
         <div className={styles.selects}>
+          {signInExperience?.color.isDarkModeEnabled && (
+            <ToggleUiThemeButton value={mode} size="small" onToggle={setMode} />
+          )}
           <Select
+            className={styles.language}
             size="small"
             value={language}
             options={availableLanguageOptions}
@@ -151,74 +86,50 @@ const Preview = ({ signInExperience, className }: Props) => {
               }
             }}
           />
-          <Select
-            size="small"
-            value={mode}
-            options={modeOptions}
-            onChange={(value) => {
-              if (value) {
-                setMode(value);
-              }
-            }}
-          />
+          {!isLivePreviewEntryInvisible && (
+            <LivePreviewButton isDisabled={isLivePreviewDisabled} size="small" />
+          )}
         </div>
       </div>
       <TabNav className={styles.nav}>
         <TabNavItem
-          isActive={platform === 'desktopWeb'}
+          isActive={platform === PreviewPlatform.DesktopWeb}
           onClick={() => {
-            setPlatform('desktopWeb');
+            setPlatform(PreviewPlatform.DesktopWeb);
           }}
         >
-          {t('sign_in_exp.preview.desktop_web')}
+          {t(
+            isNativeTabEnabled ? 'sign_in_exp.preview.desktop_web' : 'sign_in_exp.preview.desktop'
+          )}
         </TabNavItem>
         <TabNavItem
-          isActive={platform === 'mobileWeb'}
+          isActive={platform === PreviewPlatform.MobileWeb}
           onClick={() => {
-            setPlatform('mobileWeb');
+            setPlatform(PreviewPlatform.MobileWeb);
           }}
         >
-          {t('sign_in_exp.preview.mobile_web')}
+          {t(isNativeTabEnabled ? 'sign_in_exp.preview.mobile_web' : 'sign_in_exp.preview.mobile')}
         </TabNavItem>
-        <TabNavItem
-          isActive={platform === 'mobile'}
-          onClick={() => {
-            setPlatform('mobile');
-          }}
-        >
-          {t('sign_in_exp.preview.native')}
-        </TabNavItem>
-      </TabNav>
-      <div
-        className={classNames(styles.body, platform === 'desktopWeb' ? styles.web : styles.mobile)}
-        style={conditional(
-          platform === 'desktopWeb' && {
-            // Set background color to match iframe's background color on both dark and light mode.
-            backgroundColor: mode === AppearanceMode.DarkMode ? '#000' : '#e5e1ec',
-          }
+        {isNativeTabEnabled && (
+          <TabNavItem
+            isActive={platform === PreviewPlatform.Mobile}
+            onClick={() => {
+              setPlatform(PreviewPlatform.Mobile);
+            }}
+          >
+            {t('sign_in_exp.preview.native')}
+          </TabNavItem>
         )}
-      >
-        <div className={styles.deviceWrapper}>
-          <div className={classNames(styles.device, styles[mode])}>
-            {platform !== 'desktopWeb' && (
-              <div className={styles.topBar}>
-                <div className={styles.time}>{format(Date.now(), 'HH:mm')}</div>
-                <PhoneInfo />
-              </div>
-            )}
-            <iframe
-              ref={previewRef}
-              // Allow all sandbox rules
-              sandbox={undefined}
-              src="/sign-in?preview=true"
-              tabIndex={-1}
-              title={t('sign_in_exp.preview.title')}
-            />
-          </div>
-        </div>
-      </div>
+      </TabNav>
+      <SignInExperiencePreview
+        platform={platform}
+        mode={mode}
+        language={language}
+        signInExperience={signInExperience}
+        disabled={isPreviewIframeDisabled}
+      />
     </div>
   );
-};
+}
 
 export default Preview;

@@ -1,6 +1,5 @@
-import resource from '@logto/phrases-ui';
-import type { CustomPhrase } from '@logto/schemas';
-import { createMockUtils } from '@logto/shared/esm';
+import resource from '@logto/phrases-experience';
+import { type CustomPhrase } from '@logto/schemas';
 import deepmerge from 'deepmerge';
 
 import {
@@ -10,17 +9,16 @@ import {
   mockZhHkCustomPhrase,
   trTrTag,
   zhCnTag,
-  zhHkTag,
+  mockTag,
 } from '#src/__mocks__/custom-phrase.js';
 import RequestError from '#src/errors/RequestError/index.js';
+import { MockQueries } from '#src/test-utils/tenant.js';
 
 const { jest } = import.meta;
 
-const { mockEsm } = createMockUtils(jest);
-
 const englishBuiltInPhrase = resource[enTag];
 
-const customOnlyLanguage = zhHkTag;
+const customOnlyLanguage = mockTag;
 const customOnlyCustomPhrase = mockZhHkCustomPhrase;
 
 const customizedLanguage = zhCnTag;
@@ -43,11 +41,10 @@ const findCustomPhraseByLanguageTag = jest.fn(async (languageTag: string) => {
   return mockCustomPhrase;
 });
 
-mockEsm('#src/queries/custom-phrase.js', () => ({
-  findCustomPhraseByLanguageTag,
-}));
-
-const { getPhrase } = await import('#src/libraries/phrase.js');
+const { createPhraseLibrary } = await import('#src/libraries/phrase.js');
+const { getPhrases } = createPhraseLibrary(
+  new MockQueries({ customPhrases: { findCustomPhraseByLanguageTag } })
+);
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -60,6 +57,8 @@ it('should ignore empty string values from the custom phrase', async () => {
     confirm_password: 'Confirm password 5',
   };
   const mockEnCustomPhraseWithEmptyStringValues = {
+    tenantId: 'fake_tenant',
+    id: 'fake_id',
     languageTag: enTag,
     translation: {
       input: {
@@ -69,11 +68,13 @@ it('should ignore empty string values from the custom phrase', async () => {
         password: '',
       },
     },
-  };
+  } satisfies CustomPhrase;
 
   findCustomPhraseByLanguageTag.mockResolvedValueOnce(mockEnCustomPhraseWithEmptyStringValues);
-  await expect(getPhrase(enTag, [enTag])).resolves.toEqual(
+  await expect(getPhrases(enTag)).resolves.toEqual(
     deepmerge(englishBuiltInPhrase, {
+      id: 'fake_id',
+      tenantId: 'fake_tenant',
       languageTag: enTag,
       translation: {
         input: {
@@ -87,19 +88,20 @@ it('should ignore empty string values from the custom phrase', async () => {
 
 describe('when the language is English', () => {
   it('should be English custom phrase merged with its built-in phrase when its custom phrase exists', async () => {
-    await expect(getPhrase(enTag, [enTag])).resolves.toEqual(
+    await expect(getPhrases(enTag)).resolves.toEqual(
       deepmerge(englishBuiltInPhrase, mockEnCustomPhrase)
     );
   });
 
   it('should be English built-in phrase when its custom phrase does not exist', async () => {
-    await expect(getPhrase(enTag, [])).resolves.toEqual(englishBuiltInPhrase);
+    findCustomPhraseByLanguageTag.mockRejectedValueOnce(new Error('not found'));
+    await expect(getPhrases(enTag)).resolves.toEqual(englishBuiltInPhrase);
   });
 });
 
 describe('when the language is not English', () => {
   it('should be custom phrase merged with built-in phrase when both of them exist', async () => {
-    await expect(getPhrase(customizedLanguage, [customizedLanguage])).resolves.toEqual(
+    await expect(getPhrases(customizedLanguage)).resolves.toEqual(
       deepmerge(customizedBuiltInPhrase, customizedCustomPhrase)
     );
   });
@@ -107,11 +109,11 @@ describe('when the language is not English', () => {
   it('should be built-in phrase when there is built-in phrase and no custom phrase', async () => {
     const builtInOnlyLanguage = trTrTag;
     const builtInOnlyPhrase = resource[trTrTag];
-    await expect(getPhrase(builtInOnlyLanguage, [])).resolves.toEqual(builtInOnlyPhrase);
+    await expect(getPhrases(builtInOnlyLanguage)).resolves.toEqual(builtInOnlyPhrase);
   });
 
   it('should be built-in phrase when there is custom phrase and no built-in phrase', async () => {
-    await expect(getPhrase(customOnlyLanguage, [customOnlyLanguage])).resolves.toEqual(
+    await expect(getPhrases(customOnlyLanguage)).resolves.toEqual(
       deepmerge(englishBuiltInPhrase, customOnlyCustomPhrase)
     );
   });

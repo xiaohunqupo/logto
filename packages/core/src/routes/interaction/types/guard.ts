@@ -1,18 +1,13 @@
-import { emailRegEx, phoneRegEx, validateRedirectUrl } from '@logto/core-kit';
-import { eventGuard, profileGuard, InteractionEvent } from '@logto/schemas';
+import { socialUserInfoGuard } from '@logto/connector-kit';
+import { validateRedirectUrl } from '@logto/core-kit';
+import {
+  bindMfaGuard,
+  eventGuard,
+  verifyMfaResultGuard,
+  pendingMfaGuard,
+  profileGuard,
+} from '@logto/schemas';
 import { z } from 'zod';
-
-import { socialUserInfoGuard } from '#src/connectors/types.js';
-
-// Passcode Send Route Payload Guard
-export const sendPasscodePayloadGuard = z.union([
-  z.object({
-    email: z.string().regex(emailRegEx),
-  }),
-  z.object({
-    phone: z.string().regex(phoneRegEx),
-  }),
-]);
 
 // Social Authorization Uri Route Payload Guard
 export const socialAuthorizationUrlPayloadGuard = z.object({
@@ -55,27 +50,19 @@ export const anonymousInteractionResultGuard = z.object({
   profile: profileGuard.optional(),
   accountId: z.string().optional(),
   identifiers: z.array(identifierGuard).optional(),
-});
-
-export const verifiedRegisterInteractionResultGuard = z.object({
-  event: z.literal(InteractionEvent.Register),
-  profile: profileGuard.optional(),
-  identifiers: z.array(identifierGuard).optional(),
-});
-
-export const verifiedSignInteractionResultGuard = z.object({
-  event: z.literal(InteractionEvent.SignIn),
-  accountId: z.string(),
-  profile: profileGuard.optional(),
-  identifiers: z.array(identifierGuard).optional(),
+  // The new mfa to be bound to the account
+  bindMfas: bindMfaGuard.array().optional(),
+  // The pending mfa info, such as secret of TOTP
+  pendingMfa: pendingMfaGuard.optional(),
+  // The verified mfa
+  verifiedMfa: verifyMfaResultGuard.optional(),
+  // The user id to be used for register, if not provided, a new one will be generated
+  // WebAuthn requires a user id to be provided, so we have to generate and know it before submit interaction
+  pendingAccountId: z.string().optional(),
+  // The marks that the user has skip binding new MFA (for new users, they don't have database records yet)
+  mfaSkipped: z.boolean().optional(),
 });
 
 export const forgotPasswordProfileGuard = z.object({
   password: z.string(),
-});
-
-export const verifiedForgotPasswordInteractionResultGuard = z.object({
-  event: z.literal(InteractionEvent.ForgotPassword),
-  accountId: z.string(),
-  profile: forgotPasswordProfileGuard,
 });

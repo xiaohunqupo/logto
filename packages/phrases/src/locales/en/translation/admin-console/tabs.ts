@@ -1,15 +1,22 @@
 const tabs = {
-  get_started: 'Get Started',
+  get_started: 'Get started',
   dashboard: 'Dashboard',
   applications: 'Applications',
-  api_resources: 'API Resources',
-  sign_in_experience: 'Sign-in Experience',
+  api_resources: 'API resources',
+  sign_in_experience: 'Sign-in experience',
   connectors: 'Connectors',
-  users: 'User Management',
-  audit_logs: 'Audit Logs',
+  enterprise_sso: 'Enterprise SSO',
+  webhooks: 'Webhooks',
+  organizations: 'Organizations',
+  users: 'User management',
+  audit_logs: 'Audit logs',
+  roles: 'Roles',
   docs: 'Docs',
-  contact_us: 'Contact Us',
-  settings: 'Settings',
+  tenant_settings: 'Settings',
+  mfa: 'Multi-factor auth',
+  customize_jwt: 'Custom JWT',
+  signing_keys: 'Signing keys',
+  organization_template: 'Organization template',
 };
 
-export default tabs;
+export default Object.freeze(tabs);

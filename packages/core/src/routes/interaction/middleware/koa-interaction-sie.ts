@@ -1,31 +1,44 @@
-import type { SignInExperience } from '@logto/schemas';
-import { conditional } from '@silverhand/essentials';
+import crypto from 'node:crypto';
+
+import { PasswordPolicyChecker } from '@logto/core-kit';
+import { MfaPolicy, type SignInExperience } from '@logto/schemas';
 import type { MiddlewareType } from 'koa';
+import { type IRouterParamContext } from 'koa-router';
 
-import { getSignInExperienceForApplication } from '#src/libraries/sign-in-experience/index.js';
+import type Queries from '#src/tenants/Queries.js';
 
-import type { WithInteractionDetailsContext } from './koa-interaction-details.js';
+/**
+ * Extend the context with the default sign-in experience and the corresponding
+ * password policy checker.
+ */
+export type WithInteractionSieContext<ContextT extends IRouterParamContext = IRouterParamContext> =
+  ContextT & { signInExperience: SignInExperience; passwordPolicyChecker: PasswordPolicyChecker };
 
-export type WithInteractionSieContext<ContextT> = WithInteractionDetailsContext<ContextT> & {
-  signInExperience: SignInExperience;
-};
-
-export default function koaInteractionSie<StateT, ContextT, ResponseT>(): MiddlewareType<
-  StateT,
-  WithInteractionSieContext<ContextT>,
-  ResponseT
-> {
+/**
+ * Create a middleware that injects the default sign-in experience and the
+ * corresponding password policy checker into the context.
+ */
+export default function koaInteractionSie<StateT, ContextT extends IRouterParamContext, ResponseT>({
+  signInExperiences: { findDefaultSignInExperience },
+}: Queries): MiddlewareType<StateT, WithInteractionSieContext<ContextT>, ResponseT> {
   return async (ctx, next) => {
-    const { interactionDetails } = ctx;
+    const signInExperience = await findDefaultSignInExperience();
 
-    const signInExperience = await getSignInExperienceForApplication(
-      conditional(
-        typeof interactionDetails.params.client_id === 'string' &&
-          interactionDetails.params.client_id
-      )
+    ctx.signInExperience = {
+      ...signInExperience,
+      mfa: {
+        ...signInExperience.mfa,
+        policy:
+          // Fallback deprecated UserControlled policy to PromptAtSignInAndSignUp
+          signInExperience.mfa.policy === MfaPolicy.UserControlled
+            ? MfaPolicy.PromptAtSignInAndSignUp
+            : signInExperience.mfa.policy,
+      },
+    };
+    ctx.passwordPolicyChecker = new PasswordPolicyChecker(
+      signInExperience.passwordPolicy,
+      crypto.subtle
     );
-
-    ctx.signInExperience = signInExperience;
 
     return next();
   };

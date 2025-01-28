@@ -1,7 +1,9 @@
 const general = {
-  placeholder: 'Placeholder',
-  skip: 'Geç',
+  placeholder: 'Yer tutucu',
+  submit: 'Gönder',
+  skip: 'Atla',
   next: 'Sonraki',
+  back: 'Geri',
   retry: 'Tekrar Deneyin',
   done: 'Bitti',
   search: 'Ara',
@@ -9,8 +11,10 @@ const general = {
   clear_result: 'Sonuçları Temizle',
   save: 'Kaydet',
   save_changes: 'Değişiklikleri Kaydet',
-  saved: 'Kaydedildi!',
-  discard: 'Discard', // UNTRANSLATED
+  saved: 'Kaydedildi',
+  discard: 'At',
+  /** UNTRANSLATED */
+  download: 'Download',
   loading: 'Yükleniyor...',
   redirecting: 'Yönlendiriliyor...',
   add: 'Ekle',
@@ -23,7 +27,13 @@ const general = {
   customize: 'Özelleştir',
   enable: 'Etkinleştir',
   reminder: 'Hatırlatıcı',
+  edit: 'Düzenle',
   delete: 'Sil',
+  deleted: 'Silindi',
+  /** UNTRANSLATED */
+  activate: 'Activate',
+  /** UNTRANSLATED */
+  deactivate: 'Deactivate',
   more_options: 'DAHA FAZLA SEÇENEK',
   close: 'Kapat',
   copy: 'Kopyala',
@@ -31,17 +41,44 @@ const general = {
   copied: 'Kopyalandı',
   required: 'Gerekli',
   add_another: 'Bir tane daha ekle',
+  create_another: 'Başka bir tane oluştur',
   deletion_confirmation: 'Bu dosyayı silmek istediğinize emin misiniz: {{title}}?',
   settings_nav: 'Ayarlar',
   unsaved_changes_warning:
     'Bazı değişiklikler yaptınız. Bu sayfadan ayrılmak istediğine emin misin?',
   leave_page: 'Sayfayı terk et',
   stay_on_page: 'Bu sayfada kal',
-  type_to_search: 'Type to search', // UNTRANSLATED
+  type_to_search: 'Aramak için yazın',
   got_it: 'Anladım',
-  page_info: '{{min, number}}-{{max, number}} of {{total, number}}', // UNTRANSLATED
-  learn_more: 'Learn more', // UNTRANSLATED
-  tab_errors: '{{count, number}} errors', // UNTRANSLATED
+  continue: 'Devam et',
+  page_info: '{{min, number}}-{{max, number}} / {{total, number}}',
+  learn_more: 'Daha fazla bilgi edinin',
+  tab_error_one: '{{count, number}} hata',
+  tab_error_other: '{{count, number}} hata',
+  skip_for_now: 'Şimdilik atla',
+  remove: 'Kaldır',
+  visit: 'Ziyaret et',
+  join: 'Katıl',
+  try_now: 'Şimdi dene',
+  multiple_form_field: '(Çoklu)',
+  demo: 'Demo',
+  unnamed: 'İsimsiz',
+  view: 'Görünüm',
+  open: 'Aç',
+  hide: 'Gizle',
+  unknown_error: 'Bilinmeyen hata, lütfen daha sonra tekrar deneyin.',
+  select: 'Seç',
+  contact_us_action: 'Bizimle İletişime Geçin',
+  description: 'Açıklama',
+  name: 'Ad',
+  add_field: '{{field}} Ekle',
+  create_field: '{{field}} Oluştur',
+  edit_field: '{{field}} Düzenle',
+  delete_field: '{{field}} Sil',
+  coming_soon: 'Yakında',
+  or: 'Veya',
+  reset: 'Sıfırla',
+  generate: 'Oluştur',
 };
 
-export default general;
+export default Object.freeze(general);

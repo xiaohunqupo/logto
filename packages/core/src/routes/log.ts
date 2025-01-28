@@ -1,13 +1,17 @@
-import { Logs } from '@logto/schemas';
+import { Logs, interaction, token, LogKeyUnknown, jwtCustomizer, saml } from '@logto/schemas';
 import { object, string } from 'zod';
 
 import koaGuard from '#src/middleware/koa-guard.js';
 import koaPagination from '#src/middleware/koa-pagination.js';
-import { countLogs, findLogById, findLogs } from '#src/queries/log.js';
+import { type AllowedKeyPrefix } from '#src/queries/log.js';
 
-import type { AuthedRouter } from './types.js';
+import type { ManagementApiRouter, RouterInitArgs } from './types.js';
 
-export default function logRoutes<T extends AuthedRouter>(router: T) {
+export default function logRoutes<T extends ManagementApiRouter>(
+  ...[router, { queries }]: RouterInitArgs<T>
+) {
+  const { findLogById, countLogs, findLogs } = queries.logs;
+
   router.get(
     '/logs',
     koaPagination(),
@@ -17,6 +21,8 @@ export default function logRoutes<T extends AuthedRouter>(router: T) {
         applicationId: string().optional(),
         logKey: string().optional(),
       }),
+      response: Logs.guard.array(),
+      status: 200,
     }),
     async (ctx, next) => {
       const { limit, offset } = ctx.pagination;
@@ -24,10 +30,27 @@ export default function logRoutes<T extends AuthedRouter>(router: T) {
         query: { userId, applicationId, logKey },
       } = ctx.guard;
 
+      const includeKeyPrefix: AllowedKeyPrefix[] = [
+        token.Type.ExchangeTokenBy,
+        token.Type.RevokeToken,
+        interaction.prefix,
+        jwtCustomizer.prefix,
+        saml.prefix,
+        LogKeyUnknown,
+      ];
+
       // TODO: @Gao refactor like user search
       const [{ count }, logs] = await Promise.all([
-        countLogs({ logKey, applicationId, userId }),
-        findLogs(limit, offset, { logKey, userId, applicationId }),
+        countLogs({
+          logKey,
+          payload: { applicationId, userId },
+          includeKeyPrefix,
+        }),
+        findLogs(limit, offset, {
+          logKey,
+          payload: { userId, applicationId },
+          includeKeyPrefix,
+        }),
       ]);
 
       // Return totalCount to pagination middleware
@@ -40,7 +63,7 @@ export default function logRoutes<T extends AuthedRouter>(router: T) {
 
   router.get(
     '/logs/:id',
-    koaGuard({ params: object({ id: string().min(1) }), response: Logs.guard }),
+    koaGuard({ params: object({ id: string().min(1) }), response: Logs.guard, status: [200, 404] }),
     async (ctx, next) => {
       const {
         params: { id },

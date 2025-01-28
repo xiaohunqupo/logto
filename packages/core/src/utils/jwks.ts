@@ -3,32 +3,36 @@
  * - [initialize_keystore.js](https://github.com/panva/node-oidc-provider/blob/9da61e9c9dc6152cd1140d42ea06abe1d812c286/lib/helpers/initialize_keystore.js#L13-L36)
  */
 
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
-import type { JWK, KeyLike } from 'jose';
-import { exportJWK as joseExportJWK } from 'jose';
+import { type JWK, type KeyLike, exportJWK as joseExportJWK } from 'jose';
 
 const getCalculateKidComponents = (jwk: JWK) => {
   switch (jwk.kty) {
-    case 'RSA':
+    case 'RSA': {
       return {
         e: jwk.e,
         kty: 'RSA',
         n: jwk.n,
       };
-    case 'EC':
+    }
+
+    case 'EC': {
       return {
         crv: jwk.crv,
         kty: 'EC',
         x: jwk.x,
         y: jwk.y,
       };
-    case 'OKP':
+    }
+
+    case 'OKP': {
       return {
         crv: jwk.crv,
         kty: 'OKP',
         x: jwk.x,
       };
+    }
     default:
   }
 };

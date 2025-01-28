@@ -1,5 +1,10 @@
 import { languages, languageTagGuard } from '@logto/language-kit';
-import { ApplicationType, arbitraryObjectGuard, translationGuard } from '@logto/schemas';
+import {
+  ApplicationType,
+  jsonObjectGuard,
+  translationGuard,
+  customContentGuard,
+} from '@logto/schemas';
 import { string, boolean, number, object, nativeEnum, unknown, literal, union } from 'zod';
 
 import RequestError from '#src/errors/RequestError/index.js';
@@ -9,7 +14,7 @@ import { zodTypeToSwagger } from './zod.js';
 
 describe('zodTypeToSwagger', () => {
   it('arbitrary object guard', () => {
-    expect(zodTypeToSwagger(arbitraryObjectGuard)).toEqual({
+    expect(zodTypeToSwagger(jsonObjectGuard)).toEqual({
       type: 'object',
       description: 'arbitrary',
     });
@@ -219,5 +224,14 @@ describe('zodTypeToSwagger', () => {
     expect(() => zodTypeToSwagger('test')).toMatchError(
       new RequestError('swagger.invalid_zod_type', 'test')
     );
+  });
+
+  it('record type', () => {
+    expect(zodTypeToSwagger(customContentGuard)).toEqual({
+      type: 'object',
+      additionalProperties: {
+        type: 'string',
+      },
+    });
   });
 });

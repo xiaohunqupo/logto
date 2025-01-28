@@ -1,9 +1,9 @@
 // LOG-88: Refactor '@logto/schemas' type gen
 // Consider add the better assert into `essentials` package
-// eslint-disable-next-line no-restricted-imports
-import assert from 'assert';
-import fs from 'fs/promises';
-import path from 'path';
+
+import assert from 'node:assert';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { conditionalString, deduplicate } from '@silverhand/essentials';
 import camelcase from 'camelcase';
@@ -12,11 +12,15 @@ import pluralize from 'pluralize';
 import { generateSchema } from './schema.js';
 import type { FileData, Table, Field, Type, GeneratedType, TableWithType } from './types.js';
 import {
+  type ParenthesesMatch,
   findFirstParentheses,
   normalizeWhitespaces,
   parseType,
   removeUnrecognizedComments,
   splitTableFieldDefinitions,
+  stripLeadingJsDocComments as stripComments,
+  stripLeadingJsDocComments as stripLeadingJsDocumentComments,
+  getLeadingJsDocComments as getLeadingJsDocumentComments,
 } from './utils.js';
 
 const directory = 'tables';
@@ -30,7 +34,7 @@ const constrainedKeywords = [
   'references',
 ];
 
-const getOutputFileName = (file: string) => pluralize(file.slice(0, -4).replace(/_/g, '-'), 1);
+const getOutputFileName = (file: string) => pluralize(file.slice(0, -4).replaceAll('_', '-'), 1);
 
 const generate = async () => {
   const files = await fs.readdir(directory);
@@ -44,29 +48,36 @@ const generate = async () => {
         // Get statements
         const statements = paragraph
           .split(';')
-          .map((value) => normalizeWhitespaces(value))
-          .map((value) => removeUnrecognizedComments(value));
+          .map((value) => removeUnrecognizedComments(value))
+          .map((value) => normalizeWhitespaces(value));
 
         // Parse Table statements
         const tables = statements
-          .filter((value) => value.toLowerCase().startsWith('create table'))
-          .map((value) => findFirstParentheses(value))
-          // eslint-disable-next-line unicorn/prefer-native-coercion-functions
-          .filter((value): value is NonNullable<typeof value> => Boolean(value))
-          .map<Table>(({ prefix, body }) => {
+          .filter((value) =>
+            stripLeadingJsDocumentComments(value).toLowerCase().startsWith('create table')
+          )
+          .map(
+            (value) => [findFirstParentheses(stripLeadingJsDocumentComments(value)), value] as const
+          )
+          .filter((value): value is NonNullable<[ParenthesesMatch, string]> => Boolean(value[0]))
+          .map<Table>(([{ prefix, body }, raw]) => {
             const name = normalizeWhitespaces(prefix).split(' ')[2];
             assert(name, 'Missing table name: ' + prefix);
 
+            const comments = getLeadingJsDocumentComments(raw);
             const fields = splitTableFieldDefinitions(body)
               .map((value) => normalizeWhitespaces(value))
               .filter((value) =>
                 constrainedKeywords.every(
-                  (constraint) => !value.toLowerCase().startsWith(constraint + ' ')
+                  (constraint) =>
+                    !stripComments(value)
+                      .toLowerCase()
+                      .startsWith(constraint + ' ')
                 )
               )
               .map<Field>((value) => parseType(value));
 
-            return { name, fields };
+            return { name, comments, fields };
           });
 
         // Parse enum statements
@@ -151,7 +162,7 @@ const generate = async () => {
       }));
 
       if (tableWithTypes.length > 0) {
-        tsTypes.push('GeneratedSchema', 'Guard', 'CreateGuard');
+        tsTypes.push('GeneratedSchema', 'Guard');
       }
       /* eslint-enable @silverhand/fp/no-mutating-methods */
 

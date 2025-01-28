@@ -1,4 +1,4 @@
-import { HTTPError } from 'got';
+import { HTTPError } from 'ky';
 
 import {
   mockEmailConnectorConfig,
@@ -6,9 +6,10 @@ import {
   mockSmsConnectorConfig,
   mockSmsConnectorId,
   mockSocialConnectorConfig,
+  mockSocialConnectorNewConfig,
   mockSocialConnectorId,
-  mockStandardEmailConnectorConfig,
-  mockStandardEmailConnectorId,
+  mockAlternativeEmailConnectorConfig,
+  mockAlternativeEmailConnectorId,
 } from '#src/__mocks__/connectors-mock.js';
 import {
   deleteConnectorById,
@@ -18,16 +19,20 @@ import {
   sendEmailTestMessage,
   sendSmsTestMessage,
   updateConnectorConfig,
+  listConnectorFactories,
+  getConnectorFactory,
 } from '#src/api/connector.js';
+import { expectRejects } from '#src/helpers/index.js';
 
-const connectorIdMap = new Map();
+const connectorIdMap = new Map<string, string>();
 
-/*
- * We'd better only use mock connectors in integration tests.
- * Since we will refactor connectors soon, keep using some real connectors
- * for testing updating configs and enabling/disabling for now.
- */
-test('connector set-up flow', async () => {
+const mockConnectorSetups = [
+  { connectorId: mockSmsConnectorId, config: mockSmsConnectorConfig },
+  { connectorId: mockEmailConnectorId, config: mockEmailConnectorConfig },
+  { connectorId: mockSocialConnectorId, config: mockSocialConnectorConfig },
+];
+
+const cleanUpConnectorTable = async () => {
   const connectors = await listConnectors();
   await Promise.all(
     connectors.map(async ({ id }) => {
@@ -35,21 +40,39 @@ test('connector set-up flow', async () => {
     })
   );
   connectorIdMap.clear();
+};
+
+/*
+ * We'd better only use mock connectors in integration tests.
+ * Since we will refactor connectors soon, keep using some real connectors
+ * for testing updating configs and enabling/disabling for now.
+ */
+test('connector set-up flow', async () => {
+  /**
+   * Check whether mock connector factories are properly installed using
+   * both connector factory APIs:
+   * 1. GET /connector-factories (listConnectorFactories()).
+   * 2. GET /connector-factories/:connectorId (getConnectorFactory()).
+   */
+  const connectorFactories = await listConnectorFactories();
+  await Promise.all(
+    mockConnectorSetups.map(async ({ connectorId }) => {
+      expect(connectorFactories.find(({ id }) => id === connectorId)).toBeDefined();
+
+      const connectorFactory = await getConnectorFactory(connectorId);
+      expect(connectorFactory).toBeDefined();
+    })
+  );
+
+  await cleanUpConnectorTable();
 
   /*
    * Set up social/SMS/email connectors
    */
   await Promise.all(
-    [
-      { connectorId: mockSmsConnectorId, config: mockSmsConnectorConfig },
-      { connectorId: mockEmailConnectorId, config: mockEmailConnectorConfig },
-      { connectorId: mockSocialConnectorId, config: mockSocialConnectorConfig },
-    ].map(async ({ connectorId, config }) => {
-      // @darcy FIXME: should call post method directly
-      const { id } = await postConnector({ connectorId });
+    mockConnectorSetups.map(async ({ connectorId, config }) => {
+      const { id } = await postConnector({ connectorId, config });
       connectorIdMap.set(connectorId, id);
-      const updatedConnector = await updateConnectorConfig(id, config);
-      expect(updatedConnector.config).toEqual(config);
 
       // The result of getting a connector should be same as the result of updating a connector above.
       const connector = await getConnector(id);
@@ -62,75 +85,129 @@ test('connector set-up flow', async () => {
    * We will test updating to the invalid connector config, that is the case not covered above.
    */
   await expect(
-    updateConnectorConfig(connectorIdMap.get(mockSocialConnectorId), mockSmsConnectorConfig)
+    updateConnectorConfig(connectorIdMap.get(mockSocialConnectorId)!, mockSmsConnectorConfig)
   ).rejects.toThrow(HTTPError);
   // To confirm the failed updating request above did not modify the original config,
   // we check: the mock connector config should stay the same.
-  const mockSocialConnector = await getConnector(connectorIdMap.get(mockSocialConnectorId));
+  const mockSocialConnector = await getConnector(connectorIdMap.get(mockSocialConnectorId)!);
   expect(mockSocialConnector.config).toEqual(mockSocialConnectorConfig);
+  const { config: updatedConfig } = await updateConnectorConfig(
+    connectorIdMap.get(mockSocialConnectorId)!,
+    mockSocialConnectorNewConfig
+  );
+  expect(updatedConfig).toEqual(mockSocialConnectorNewConfig);
 
   /*
    * Change to another SMS/Email connector
    */
-  // @darcy FIXME: should call post method directly
   const { id } = await postConnector({
-    connectorId: mockStandardEmailConnectorId,
-    metadata: { target: 'mock-standard-mail' },
+    connectorId: mockAlternativeEmailConnectorId,
+    config: mockAlternativeEmailConnectorConfig,
   });
-  await updateConnectorConfig(id, mockStandardEmailConnectorConfig);
-  connectorIdMap.set(mockStandardEmailConnectorId, id);
+  connectorIdMap.set(mockAlternativeEmailConnectorId, id);
   const currentConnectors = await listConnectors();
+  // Only one SMS/email connector should be added at a time, hence previous SMS/email connector will be deleted automatically.
   expect(
     currentConnectors.some((connector) => connector.connectorId === mockEmailConnectorId)
   ).toBeFalsy();
   connectorIdMap.delete(mockEmailConnectorId);
   expect(
-    currentConnectors.some((connector) => connector.connectorId === mockStandardEmailConnectorId)
-  ).toBeTruthy();
-  expect(
-    currentConnectors.find((connector) => connector.connectorId === mockStandardEmailConnectorId)
+    currentConnectors.find((connector) => connector.connectorId === mockAlternativeEmailConnectorId)
       ?.config
-  ).toEqual(mockStandardEmailConnectorConfig);
+  ).toEqual(mockAlternativeEmailConnectorConfig);
+  // Can reset the connector config to empty object `{}` (when it is valid).
+  await expect(updateConnectorConfig(id, { config: {} })).resolves.not.toThrow();
+  const alternativeEmailConnector = await getConnector(id);
+  expect(alternativeEmailConnector.config).toEqual({});
 
   /*
    * Delete (i.e. disable) a connector
    */
   await expect(
-    deleteConnectorById(connectorIdMap.get(mockStandardEmailConnectorId))
+    deleteConnectorById(connectorIdMap.get(mockAlternativeEmailConnectorId)!)
   ).resolves.not.toThrow();
-  connectorIdMap.delete(mockStandardEmailConnectorId);
+  await expect(getConnector(connectorIdMap.get(mockAlternativeEmailConnectorId)!)).rejects.toThrow(
+    HTTPError
+  );
+  connectorIdMap.delete(mockAlternativeEmailConnectorId);
 
   /**
    * List connectors after manually setting up connectors.
    * The result of listing connectors should be same as the result of updating connectors above.
    */
-  expect(await listConnectors()).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        id: connectorIdMap.get(mockSmsConnectorId),
-        connectorId: mockSmsConnectorId,
-        config: mockSmsConnectorConfig,
-      }),
-      expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        id: connectorIdMap.get(mockSocialConnectorId),
-        connectorId: mockSocialConnectorId,
-        config: mockSocialConnectorConfig,
-      }),
-    ])
+  const allConnectorsAfterSetup = await listConnectors();
+  expect(
+    allConnectorsAfterSetup.find(({ id }) => id === connectorIdMap.get(mockSmsConnectorId))
+  ).toEqual(
+    expect.objectContaining({
+      id: connectorIdMap.get(mockSmsConnectorId),
+      connectorId: mockSmsConnectorId,
+      config: mockSmsConnectorConfig,
+    })
+  );
+  expect(
+    allConnectorsAfterSetup.find(({ id }) => id === connectorIdMap.get(mockSocialConnectorId))
+  ).toEqual(
+    expect.objectContaining({
+      id: connectorIdMap.get(mockSocialConnectorId),
+      connectorId: mockSocialConnectorId,
+      config: mockSocialConnectorNewConfig,
+    })
   );
 });
 
-test('send SMS/email test message', async () => {
-  const connectors = await listConnectors();
-  await Promise.all(
-    connectors.map(async ({ id }) => {
-      await deleteConnectorById(id);
-    })
-  );
-  connectorIdMap.clear();
+test('create connector with non-exist connectorId', async () => {
+  await cleanUpConnectorTable();
+  await expectRejects(postConnector({ connectorId: 'non-exist-id' }), {
+    code: 'connector.not_found_with_connector_id',
+    status: 422,
+  });
+});
 
+test('create non standard social connector with target', async () => {
+  await cleanUpConnectorTable();
+  await expectRejects(
+    postConnector({ connectorId: mockSocialConnectorId, metadata: { target: 'target' } }),
+    {
+      code: 'connector.cannot_overwrite_metadata_for_non_standard_connector',
+      status: 400,
+    }
+  );
+});
+
+test('create duplicated social connector', async () => {
+  await cleanUpConnectorTable();
+  await postConnector({ connectorId: mockSocialConnectorId });
+  await expectRejects(postConnector({ connectorId: mockSocialConnectorId }), {
+    code: 'connector.multiple_instances_not_supported',
+    status: 422,
+  });
+});
+
+test('override metadata for non-standard social connector', async () => {
+  await cleanUpConnectorTable();
+  const { id } = await postConnector({ connectorId: mockSocialConnectorId });
+  await expectRejects(updateConnectorConfig(id, {}, { target: 'target' }), {
+    code: 'connector.cannot_overwrite_metadata_for_non_standard_connector',
+    status: 400,
+  });
+});
+
+test('send SMS/email test message', async () => {
+  await cleanUpConnectorTable();
+
+  const generatePhone = '8612345678901';
+  const generateEmail = 'test@example.com';
+
+  // Can send test message without enabling passwordless connectors (test whether `config` works).
+  await expect(
+    sendSmsTestMessage(mockSmsConnectorId, generatePhone, mockSmsConnectorConfig)
+  ).resolves.not.toThrow();
+  await expect(
+    sendEmailTestMessage(mockEmailConnectorId, generateEmail, mockEmailConnectorConfig)
+  ).resolves.not.toThrow();
+
+  // Set up passwordless connectors.
   await Promise.all(
     [{ connectorId: mockSmsConnectorId }, { connectorId: mockEmailConnectorId }].map(
       async ({ connectorId }) => {
@@ -140,17 +217,19 @@ test('send SMS/email test message', async () => {
     )
   );
 
-  const phone = '8612345678901';
-  const email = 'test@example.com';
-
   await expect(
-    sendSmsTestMessage(connectorIdMap.get(mockSmsConnectorId), phone, mockSmsConnectorConfig)
+    sendSmsTestMessage(mockSmsConnectorId, generatePhone, mockSmsConnectorConfig)
   ).resolves.not.toThrow();
   await expect(
-    sendEmailTestMessage(connectorIdMap.get(mockEmailConnectorId), email, mockEmailConnectorConfig)
+    sendEmailTestMessage(mockEmailConnectorId, generateEmail, mockEmailConnectorConfig)
   ).resolves.not.toThrow();
-  await expect(sendSmsTestMessage(mockSmsConnectorId, phone, {})).rejects.toThrow(HTTPError);
-  await expect(sendEmailTestMessage(mockEmailConnectorId, email, {})).rejects.toThrow(HTTPError);
+  // Throws due to invalid `config`s.
+  await expect(sendSmsTestMessage(mockSmsConnectorId, generatePhone, {})).rejects.toThrow(
+    HTTPError
+  );
+  await expect(sendEmailTestMessage(mockEmailConnectorId, generateEmail, {})).rejects.toThrow(
+    HTTPError
+  );
 
   for (const [_connectorId, id] of connectorIdMap.entries()) {
     // eslint-disable-next-line no-await-in-loop

@@ -108,7 +108,7 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.template_not_found',
-          status: 500,
+          status: 400,
         },
         { message }
       )
@@ -187,6 +187,24 @@ describe('koaConnectorErrorHandler middleware', () => {
     );
   });
 
+  it('Rate Limit Exceeded', async () => {
+    const message = 'Mock Rate Limit Exceeded';
+    const error = new ConnectorError(ConnectorErrorCodes.RateLimitExceeded, message);
+    next.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await expect(koaConnectorErrorHandler()(ctx, next)).rejects.toMatchError(
+      new RequestError(
+        {
+          code: 'connector.rate_limit_exceeded',
+          status: 429,
+        },
+        { message }
+      )
+    );
+  });
+
   it('General connector errors with string type messages', async () => {
     const message = 'Mock General connector errors';
     const error = new ConnectorError(ConnectorErrorCodes.General, message);
@@ -198,7 +216,8 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.general',
-          status: 500,
+          status: 400,
+          errorDescription: JSON.stringify({ message }),
         },
         { message }
       )
@@ -216,8 +235,8 @@ describe('koaConnectorErrorHandler middleware', () => {
       new RequestError(
         {
           code: 'connector.general',
-          status: 500,
-          errorDescription: '\nMock General connector errors',
+          status: 400,
+          errorDescription: 'Mock General connector errors',
         },
         message
       )

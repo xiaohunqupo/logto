@@ -1,21 +1,25 @@
-import { exec } from 'child_process';
-import { existsSync } from 'fs';
-import fs from 'fs/promises';
-import path from 'path';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { promisify } from 'node:util';
 
-import { assert, conditionalString } from '@silverhand/essentials';
+import { conditionalArray, conditionalString, trySafe } from '@silverhand/essentials';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { got } from 'got';
+import pLimit from 'p-limit';
 import pRetry from 'p-retry';
-import tar from 'tar';
+import { extract } from 'tar';
 import { z } from 'zod';
 
-import { connectorDirectory } from '../../constants.js';
-import { getConnectorPackagesFromDirectory, isTty, log, oraPromise } from '../../utilities.js';
-import { defaultPath } from '../install/utils.js';
+import { connectorDirectory, coreDirectory } from '../../constants.js';
+import {
+  consoleLog,
+  getConnectorPackagesFromDirectory,
+  inquireInstancePath,
+  oraPromise,
+} from '../../utils.js';
 
-const coreDirectory = 'packages/core';
 const execPromise = promisify(exec);
 export const npmPackResultGuard = z
   .object({
@@ -24,63 +28,6 @@ export const npmPackResultGuard = z
     filename: z.string(),
   })
   .array();
-
-const buildPathErrorMessage = (value: string) =>
-  `The path ${chalk.green(value)} does not contain a Logto instance, please try another.`;
-
-const validatePath = async (value: string) => {
-  const corePackageJsonPath = path.resolve(path.join(value, coreDirectory, 'package.json'));
-
-  if (!existsSync(corePackageJsonPath)) {
-    return buildPathErrorMessage(value);
-  }
-
-  const packageJson = await fs.readFile(corePackageJsonPath, { encoding: 'utf8' });
-  const packageName = await z
-    .object({ name: z.string() })
-    .parseAsync(JSON.parse(packageJson))
-    .then(({ name }) => name)
-    .catch(() => '');
-
-  if (packageName !== '@logto/core') {
-    return buildPathErrorMessage(value);
-  }
-
-  return true;
-};
-
-export const inquireInstancePath = async (initialPath?: string) => {
-  const inquire = async () => {
-    if (!isTty()) {
-      assert(initialPath, new Error('Path is missing'));
-
-      return initialPath;
-    }
-
-    const { instancePath } = await inquirer.prompt<{ instancePath: string }>(
-      {
-        name: 'instancePath',
-        message: 'Where is your Logto instance?',
-        type: 'input',
-        default: defaultPath,
-        filter: (value: string) => value.trim(),
-        validate: validatePath,
-      },
-      { instancePath: initialPath }
-    );
-
-    return instancePath;
-  };
-
-  const instancePath = await inquire();
-  const validated = await validatePath(instancePath);
-
-  if (validated !== true) {
-    log.error(validated);
-  }
-
-  return instancePath;
-};
 
 const packagePrefix = 'connector-';
 
@@ -95,7 +42,7 @@ export const normalizePackageName = (name: string) =>
     )
     .join('/');
 
-const getConnectorDirectory = (instancePath: string) =>
+export const getConnectorDirectory = (instancePath: string) =>
   path.join(instancePath, coreDirectory, connectorDirectory);
 
 export const isOfficialConnector = (packageName: string) =>
@@ -103,19 +50,37 @@ export const isOfficialConnector = (packageName: string) =>
 
 export const getConnectorPackagesFrom = async (instancePath?: string) => {
   const directory = getConnectorDirectory(await inquireInstancePath(instancePath));
+  const packages = await trySafe(getConnectorPackagesFromDirectory(directory));
 
-  return getConnectorPackagesFromDirectory(directory);
+  if (!packages || packages.length === 0) {
+    throw new Error('No connector found in ' + directory);
+  }
+
+  return packages;
 };
 
-export const addConnectors = async (instancePath: string, packageNames: string[]) => {
-  const cwd = getConnectorDirectory(instancePath);
+export const getLocalConnectorPackages = async (instancePath: string) => {
+  const directory = path.join(instancePath, 'packages', connectorDirectory);
+  const files = await fs.readdir(directory, { withFileTypes: true });
+  const packages = files.filter(
+    (entity) => entity.isDirectory() && entity.name.startsWith('connector-')
+  );
 
+  if (packages.length === 0) {
+    throw new Error('No connector found in ' + directory);
+  }
+
+  return packages.map(({ name }) => [name, path.join(directory, name)] as const);
+};
+
+export const addConnectorsToPath = async (cwd: string, packageNames: string[]) => {
   if (!existsSync(cwd)) {
     await fs.mkdir(cwd, { recursive: true });
   }
 
-  log.info('Fetch connector metadata');
+  consoleLog.info('Fetch connector metadata');
 
+  const limit = pLimit(10);
   const results = await Promise.all(
     packageNames
       .map((name) => normalizePackageName(name))
@@ -130,64 +95,119 @@ export const addConnectors = async (instancePath: string, packageNames: string[]
             );
           }
 
-          const { filename, name } = result[0];
-          const escapedFilename = filename.replace(/\//g, '-').replace(/@/g, '');
+          const { filename, name, version } = result[0];
+          const escapedFilename = filename.replaceAll('/', '-').replaceAll('@', '');
           const tarPath = path.join(cwd, escapedFilename);
-          const packageDirectory = path.join(cwd, name.replace(/\//g, '-'));
+          const packageDirectory = path.join(cwd, name.replaceAll('/', '-'));
 
           await fs.rm(packageDirectory, { force: true, recursive: true });
           await fs.mkdir(packageDirectory, { recursive: true });
-          await tar.extract({ cwd: packageDirectory, file: tarPath, strip: 1 });
+          await extract({ cwd: packageDirectory, file: tarPath, strip: 1 });
           await fs.unlink(tarPath);
 
-          log.succeed(`Added ${chalk.green(name)}`);
+          consoleLog.succeed(`Added ${chalk.green(name)} v${version}`);
         };
 
-        try {
-          await pRetry(run, { retries: 2 });
-        } catch (error: unknown) {
-          console.warn(`[${packageName}]`, error);
+        return limit(async () => {
+          try {
+            await pRetry(run, { retries: 2 });
+          } catch (error: unknown) {
+            consoleLog.error(`[${packageName}]`, error);
 
-          return packageName;
-        }
+            return packageName;
+          }
+        });
       })
   );
 
   const errorPackages = results.filter(Boolean);
   const errorCount = errorPackages.length;
 
-  log.info(
+  consoleLog.info(
     errorCount
       ? `Finished with ${errorCount} error${conditionalString(errorCount > 1 && 's')}.`
       : 'Finished'
   );
 
   if (errorCount) {
-    log.warn('Failed to add ' + errorPackages.map((name) => chalk.green(name)).join(', '));
+    consoleLog.warn('Failed to add ' + errorPackages.map((name) => chalk.green(name)).join(', '));
   }
+};
+
+export const addConnectors = async (instancePath: string, packageNames: string[]) => {
+  const cwd = getConnectorDirectory(instancePath);
+
+  await addConnectorsToPath(cwd, packageNames);
 };
 
 const officialConnectorPrefix = '@logto/connector-';
 
-const fetchOfficialConnectorList = async () => {
-  const { stdout } = await execPromise(`npm search ${officialConnectorPrefix} --json`);
-  const packages = z
-    .object({ name: z.string() })
-    .transform(({ name }) => name)
-    .array()
-    .parse(JSON.parse(stdout));
+type PackageMeta = { name: string; scope: string; version: string };
 
-  return packages.filter((name) =>
-    ['mock', 'kit'].every(
-      (excluded) => !name.slice(officialConnectorPrefix.length).startsWith(excluded)
-    )
-  );
+export const fetchOfficialConnectorList = async (includingCloudConnectors = false) => {
+  // See https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#get-v1search
+  type FetchResult = {
+    objects: Array<{
+      package: PackageMeta;
+      flags?: { unstable?: boolean };
+    }>;
+    total: number;
+  };
+
+  const fetchList = async (from = 0, size = 20) => {
+    const parameters = new URLSearchParams({
+      text: officialConnectorPrefix,
+      from: String(from),
+      size: String(size),
+    });
+
+    return got(
+      `https://registry.npmjs.org/-/v1/search?${parameters.toString()}`
+    ).json<FetchResult>();
+  };
+
+  const packages: PackageMeta[] = [];
+
+  const excludeList = ['mock', 'kit', ...conditionalArray(!includingCloudConnectors && 'logto')];
+
+  // The API called by `fetchList` performs a 'fuzzy' search based on the `text` parameter, which will yield many irrelevant results. We need to filter out these irrelevant results (using `name.startsWith(officialConnectorPrefix)` for filtering).
+  // Disable lint rules for business need
+  // eslint-disable-next-line @silverhand/fp/no-let, @silverhand/fp/no-mutation
+  for (let page = 0; ; ++page) {
+    // eslint-disable-next-line no-await-in-loop
+    const { objects: rawObjects } = await fetchList(page * 20, 20);
+
+    const objects = rawObjects.filter(
+      ({ package: { name, scope } }) =>
+        name.startsWith(officialConnectorPrefix) &&
+        excludeList.every(
+          (excluded) => !name.slice(officialConnectorPrefix.length).startsWith(excluded)
+        )
+    );
+
+    // eslint-disable-next-line @silverhand/fp/no-mutating-methods
+    packages.push(...objects.map(({ package: data }) => data));
+
+    if (objects.length < 20) {
+      break;
+    }
+  }
+
+  return packages;
 };
 
-export const addOfficialConnectors = async (instancePath: string) => {
-  const packages = await oraPromise(fetchOfficialConnectorList(), {
+export const addOfficialConnectors = async (
+  instancePath: string,
+  includingCloudConnectors = false
+) => {
+  const packages = await oraPromise(fetchOfficialConnectorList(includingCloudConnectors), {
     text: 'Fetch official connector list',
-    prefixText: chalk.blue('[info]'),
   });
-  await addConnectors(instancePath, packages);
+
+  consoleLog.info(`Found ${packages.length} official connectors`);
+
+  await addConnectors(
+    instancePath,
+    packages.map(({ name }) => name)
+  );
 };

@@ -1,16 +1,22 @@
 const applications = {
+  page_title: 'Applications',
   title: 'Applications',
-  subtitle:
-    'Set up a mobile, single page or traditional application to use Logto for authentication',
-  create: 'Create Application',
+  subtitle: 'Create and manage applications for OIDC authentication.',
+  subtitle_with_app_type: 'Set up Logto authentication for your {{name}} application',
+  create: 'Create application',
+  create_subtitle_third_party:
+    'Use Logto as your identity provider (IdP) to easily integrate with third-party applications',
   application_name: 'Application name',
   application_name_placeholder: 'My App',
   application_description: 'Application description',
   application_description_placeholder: 'Enter your application description',
   select_application_type: 'Select an application type',
   no_application_type_selected: 'You haven’t selected any application type yet',
-  application_created:
-    'The application {{name}} has been successfully created! \nNow finish your application settings.',
+  application_created: 'Application created successfully.',
+  tab: {
+    my_applications: 'My apps',
+    third_party_applications: 'Third-party apps',
+  },
   app_id: 'App ID',
   type: {
     native: {
@@ -29,21 +35,29 @@ const applications = {
       description: 'E.g., Next.js, PHP',
     },
     machine_to_machine: {
-      title: 'Machine to Machine',
+      title: 'Machine-to-Machine',
       subtitle: 'An app (usually a service) that directly talks to resources',
       description: 'E.g., Backend service',
     },
+    protected: {
+      title: 'Protected App',
+      subtitle: 'An app that is protected by Logto', // Not in use
+      description: 'N/A', // Not in use
+    },
+    saml: {
+      title: 'SAML App',
+      subtitle: 'An app that is used as an SAML IdP connector',
+      description: 'E.g., SAML',
+    },
+    third_party: {
+      title: 'Third-party App',
+      subtitle: 'An app that is used as a third-party IdP connector',
+      description: 'E.g., OIDC',
+    },
   },
-  guide: {
-    get_sample_file: 'Get Sample',
-    header_description:
-      'Follow a step by step guide to integrate your application or click the right button to get our sample project',
-    title: 'The application has been successfully created',
-    subtitle:
-      'Now follow the steps below to finish your app settings. Please select the SDK type to continue.',
-    description_by_sdk:
-      'This quick start guide demonstrates how to integrate Logto into {{sdk}} app',
-  },
+  placeholder_title: 'Select an application type to continue',
+  placeholder_description:
+    'Logto uses an application entity for OIDC to help with tasks such as identifying your apps, managing sign-in, and creating audit logs.',
 };
 
-export default applications;
+export default Object.freeze(applications);

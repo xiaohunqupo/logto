@@ -1,51 +1,68 @@
 const applications = {
+  page_title: 'Uygulamalar',
   title: 'Uygulamalar',
   subtitle:
-    'Kimlik doğrulaması için Logtoyu kullanmak üzere mobil, tek sayfa veya geleneksel bir uygulama ayarlayınız',
+    'Kimlik doğrulaması için Logtoyu kullanmak üzere mobil, tek sayfa, machine to machine veya geleneksel bir uygulama ayarlayınız',
+  subtitle_with_app_type: 'Logto Doğrulamasını {{name}} uygulamanız için yapılandırın',
   create: 'Uygulama oluştur',
+  create_subtitle_third_party:
+    "Logto'yu kimlik sağlayıcısı (IdP) olarak kullanarak üçüncü taraf uygulamalarla kolayca entegre olun",
   application_name: 'Uygulama adı',
   application_name_placeholder: 'Uygulamam',
   application_description: 'Uygulama açıklaması',
   application_description_placeholder: 'Uygulama açıklaması giriniz',
   select_application_type: 'Uygulama tipi seçiniz',
   no_application_type_selected: 'Henüz bir uygulama tipi seçmediniz',
-  application_created:
-    '{{name}} Uygulaması başarıyla oluşturuldu! \nŞimdi uygulama ayarlarını tamamlayın.',
-  app_id: 'Uygulama IDsi',
+  application_created: 'Uygulama başarıyla oluşturuldu.',
+  tab: {
+    my_applications: 'Benim uygulamalarım',
+    third_party_applications: 'Üçüncü taraf uygulamaları',
+  },
+  app_id: "Uygulama ID'si",
   type: {
     native: {
-      title: 'Native Uygulama',
+      title: 'Yerel Uygulama',
       subtitle: 'Nativede çalışan bir uygulama ',
       description: 'Örneğin, iOS uygulaması, Android uygulaması',
     },
     spa: {
-      title: 'Tek sayfalı uygulama',
+      title: 'Tek Sayfalı Uygulama',
       subtitle:
         'Bir web tarayıcısında çalışan ve verileri yerinde dinamik olarak güncelleyen bir uygulama',
       description: 'Örneğin, React DOM uygulaması, Vue uygulaması',
     },
     traditional: {
-      title: 'Traditional Web',
+      title: 'Geleneksel Web',
       subtitle: 'Sayfaları yalnızca web sunucusu tarafından işleyen ve güncelleyen bir uygulama',
       description: 'Örneğin, JSP, PHP',
     },
-    // UNTRANSLATED
     machine_to_machine: {
-      title: 'Machine to Machine',
-      subtitle: 'An app (usually a service) that directly talks to resources',
-      description: 'E.g., Backend service',
+      title: 'Makine-Makine',
+      subtitle: 'Kaynaklarla doğrudan iletişim kuran bir uygulama (genellikle bir servis)',
+      description: 'Örneğin, Backend servisi',
+    },
+    protected: {
+      title: 'Korunan Uygulama',
+      subtitle: 'Logto tarafından korunan bir uygulama',
+      description: 'N/A',
+    },
+    saml: {
+      /** UNTRANSLATED */
+      title: 'SAML App',
+      /** UNTRANSLATED */
+      subtitle: 'An app that is used as an SAML IdP connector',
+      /** UNTRANSLATED */
+      description: 'E.g., SAML',
+    },
+    third_party: {
+      title: 'Üçüncü Taraf Uygulama',
+      subtitle: 'Üçüncü taraf bir IdP bağlayıcısı olarak kullanılan bir uygulama',
+      description: 'Ör., OIDC, SAML',
     },
   },
-  guide: {
-    get_sample_file: 'Örnek Gör',
-    header_description:
-      'Uygulamanızı entegre etmek için adım adım kılavuzu izleyin veya örnek projemizi almak için sağ düğmeye tıklayınız',
-    title: 'Uygulama başarıyla oluşturuldu',
-    subtitle:
-      'Şimdi uygulama ayarlarınızı tamamlamak için aşağıdaki adımları izleyiniz. Lütfen devam etmek için SDK türünü seçiniz.',
-    description_by_sdk:
-      'Bu hızlı başlangıç kılavuzu, Logtoyu {{sdk}} uygulamasına nasıl entegre edeceğinizi gösterir',
-  },
+  placeholder_title: 'Devam etmek için bir uygulama tipi seçin',
+  placeholder_description:
+    'Logto, uygulamanızı tanımlamaya, oturum açmayı yönetmeye ve denetim kayıtları oluşturmaya yardımcı olmak için OIDC için bir uygulama varlığı kullanır.',
 };
 
-export default applications;
+export default Object.freeze(applications);

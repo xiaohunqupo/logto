@@ -1,9 +1,9 @@
 import type { SignUp } from '@logto/schemas';
 import { SignInIdentifier, ConnectorType } from '@logto/schemas';
 
-import type { LogtoConnector } from '#src/connectors/types.js';
 import RequestError from '#src/errors/RequestError/index.js';
 import assertThat from '#src/utils/assert-that.js';
+import type { LogtoConnector } from '#src/utils/connectors/types.js';
 
 export const validateSignUp = (signUp: SignUp, enabledConnectors: LogtoConnector[]) => {
   for (const identifier of signUp.identifiers) {
@@ -17,7 +17,7 @@ export const validateSignUp = (signUp: SignUp, enabledConnectors: LogtoConnector
       );
     }
 
-    if (identifier === SignInIdentifier.Sms) {
+    if (identifier === SignInIdentifier.Phone) {
       assertThat(
         enabledConnectors.some((item) => item.type === ConnectorType.Sms),
         new RequestError({
@@ -36,7 +36,7 @@ export const validateSignUp = (signUp: SignUp, enabledConnectors: LogtoConnector
       );
     }
 
-    if (identifier === SignInIdentifier.Email || identifier === SignInIdentifier.Sms) {
+    if (identifier === SignInIdentifier.Email || identifier === SignInIdentifier.Phone) {
       assertThat(
         signUp.verify,
         new RequestError({

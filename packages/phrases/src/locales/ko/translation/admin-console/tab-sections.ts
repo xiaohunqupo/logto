@@ -1,8 +1,10 @@
 const tab_sections = {
-  overview: '살펴보기',
-  resource_management: '리소스 관리',
-  user_management: '사용자 관리',
-  help_and_support: '고객센터',
+  overview: '개요',
+  authentication: '인증',
+  authorization: '인가',
+  users: '사용자',
+  developer: '개발자',
+  tenant: '임차인',
 };
 
-export default tab_sections;
+export default Object.freeze(tab_sections);

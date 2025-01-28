@@ -1,5 +1,934 @@
 # Change Log
 
+## 1.20.0
+
+### Minor Changes
+
+- f1b1d9e95: new MFA prompt policy
+
+  You can now cutomize the MFA prompt policy in the Console.
+
+  First, choose if you want to enable **Require MFA**:
+
+  - **Enable**: Users will be prompted to set up MFA during the sign-in process which cannot be skipped. If the user fails to set up MFA or deletes their MFA settings, they will be locked out of their account until they set up MFA again.
+  - **Disable**: Users can skip the MFA setup process during sign-up flow.
+
+  If you choose to **Disable**, you can choose the MFA setup prompt:
+
+  - Do not ask users to set up MFA.
+  - Ask users to set up MFA during registration (skippable, one-time prompt). **The same prompt as previous policy (UserControlled)**
+  - Ask users to set up MFA on their sign-in after registration (skippable, one-time prompt)
+
+### Patch Changes
+
+- 239b81e31: loose redirect uri restrictions
+
+  Logto has been following the industry best practices for OAuth2.0 and OIDC from the start. However, in the real world, there are things we cannot control, like third-party services or operation systems like Windows.
+
+  This update relaxes restrictions on redirect URIs to allow the following:
+
+  1. A mix of native and HTTP(S) redirect URIs. For example, a native app can now use a redirect URI like `https://example.com`.
+  2. Native schemes without a period (`.`). For example, `myapp://callback` is now allowed.
+
+  When such URIs are configured, Logto Console will display a prominent warning. This change is backward-compatible and will not affect existing applications.
+
+  We hope this change will make it easier for you to integrate Logto with your applications.
+
+## 1.19.0
+
+### Minor Changes
+
+- 640425414: add `trustUnverifiedEmail` setting for the Microsoft EntraID OIDC SSO connector
+
+  Since we launched the **EntraID OIDC SSO connector** we have received several feedbacks that their customer's email address can not be populated to Logto's user profile when signing up through the EntraID OIDC SSO connector.
+  This is because Logto only syncs verified email addresses, meaning the `email_verified` claim must be `true` in the user info response from the OIDC provider.
+
+  However, based on Microsoft's documentation, since the user's email address in manually managed by the organization, they are not verified guaranteed. This means that the `email_verified` claim will not be included in their user info response.
+
+  To address this issue, we have added a new `trustUnverifiedEmail` exclusively for the Microsoft EntraID OIDC SSO connector. When this setting is enabled, Logto will trust the email address provided by the Microsoft EntraID OIDC SSO connector even if the `email_verified` claim is not included in the user info response. This will allow users to sign up and log in to Logto using their email address without any issues. Please note this may introduce a security risk as the email address is not verified by the OIDC provider. You should only enable this setting if you trust the email address provided by the Microsoft EntraID OIDC SSO connector.
+
+  You can configure this setting in the **EntraID OIDC SSO connector** settings page in the Logto console or through the management API.
+
+- 640425414: display support email and website info on experience error pages.
+
+  Added support email and website info to the error pages of the experience app. E.g. when a user tries to access a page that doesn't exist, or when the social session is not found in a social callback page. This will help users to contact support easily when they encounter an error.
+
+  You may configure the support email and website info in the sign-in experience settings page in the Logto console or through the management API.
+
+- 640425414: add unknown session redirect url in the sign-in experience settings
+
+  In certain cases, Logto may be unable to properly identify a user’s authentication session when they land on the sign-in page. This can happen if the session has expired, if the user bookmarks the sign-in URL for future access, or if they directly share the sign-in link. By default, an "unknown session" 404 error is displayed.
+
+  To improve user experience, we have added a new `unknownSessionRedirectUrl` field in the sign-in experience settings.You can configure this field to redirect users to a custom URL when an unknown session is detected. This will help users to easily navigate to your client application or website and reinitiate the authentication process automatically.
+
+## 1.18.1
+
+### Patch Changes
+
+- 5bb937505: Connector config default values should only show up when creating new connectors
+
+## 1.18.0
+
+### Minor Changes
+
+- f150a67d5: display user password information on user details page
+- e0326c96c: Add personal access token (PAT)
+
+  Personal access tokens (PATs) provide a secure way for users to grant access tokens without using their credentials and interactive sign-in.
+
+  You can create a PAT by going to the user's detail page in Console or using the Management API `POST /users/:userId/personal-access-tokens`.
+
+  To use a PAT, call the token exchange endpoint `POST /oidc/token` with the following parameters:
+
+  1. `grant_type`: REQUIRED. The value of this parameter must be `urn:ietf:params:oauth:grant-type:token-exchange` indicates that a token exchange is being performed.
+  2. `resource`: OPTIONAL. The resource indicator, the same as other token requests.
+  3. `scope`: OPTIONAL. The requested scopes, the same as other token requests.
+  4. `subject_token`: REQUIRED. The user's PAT.
+  5. `subject_token_type`: REQUIRED. The type of the security token provided in the `subject_token` parameter. The value of this parameter must be `urn:logto:token-type:personal_access_token`.
+  6. `client_id`: REQUIRED. The client identifier of the client application that is making the request, the returned access token will contain this client_id claim.
+
+  And the response will be a JSON object with the following properties:
+
+  1. `access_token`: REQUIRED. The access token of the user, which is the same as other token requests like `authorization_code` or `refresh_token`.
+  2. `issued_token_type`: REQUIRED. The type of the issued token. The value of this parameter must be `urn:ietf:params:oauth:token-type:access_token`.
+  3. `token_type`: REQUIRED. The type of the token. The value of this parameter must be `Bearer`.
+  4. `expires_in`: REQUIRED. The lifetime in seconds of the access token.
+  5. `scope`: OPTIONAL. The scopes of the access token.
+
+- b837efead: add access deny method to the custom token claims script
+
+  Introduce a new `api` parameter to the custom token claims script. This parameter is used to provide more access control context over the token exchange process.
+  Use `api.denyAccess()` to reject the token exchange request. Use this method to implement your own access control logics.
+
+  ```javascript
+  const getCustomJwtClaims: async ({ api }) => {
+    // Reject the token request, with a custom error message
+    return api.denyAccess('Access denied');
+  }
+  ```
+
+### Patch Changes
+
+- ee1947ac4: support entering name while creating a user
+- ff6b304ba: fix: should not show custom JWT paywall for OSS users
+- 3b9714b99: set `lang` attribute for `<html>`
+- fae8725a4: improve RTL language support
+
+## 1.17.0
+
+### Minor Changes
+
+- 3a839f6d6: support organization logo and sign-in experience override
+
+  Now it's able to set light and dark logos for organizations. You can upload the logos in the organization settings page.
+
+  Also, it's possible to override the sign-in experience logo from an organization. Simply add the `organization_id` parameter to the authentication request. In most Logto SDKs, it can be done by using the `extraParams` field in the `signIn` method.
+
+  For example, in the JavaScript SDK:
+
+  ```ts
+  import LogtoClient from "@logto/client";
+
+  const logtoClient = new LogtoClient(/* your configuration */);
+
+  logtoClient.signIn({
+    redirectUri: "https://your-app.com/callback",
+    extraParams: {
+      organization_id: "<organization-id>",
+    },
+  });
+  ```
+
+  The value `<organization-id>` can be found in the organization settings page.
+
+  If you could not find the `extraParams` field in the SDK you are using, please let us know.
+
+- b91ec0cd6: add the application `custom_data` field editor to the application details page in console
+- 62f5e5e0c: support app-level branding
+
+  You can now set logos, favicons, and colors for your app. These settings will be used in the sign-in experience when the app initiates the authentication flow. For apps that have no branding settings, the omni sign-in experience branding will be used.
+
+  If `organization_id` is provided in the authentication request, the app-level branding settings will be overridden by the organization's branding settings, if available.
+
+- 3bf756f2b: use Vite for transpilation and bundling
+
+  Removed ParcelJS and replaced with Vite. No breaking changes should be expected, but use a minor version bump to catch your attention.
+
+  > [!Important]
+  > The browserlist configuration for `@logto/experience` and been synced with what is stated in README.md.
+
+- b188bb161: support multiple app secrets with expiration
+
+  Now secure apps (machine-to-machine, traditional web, Protected) can have multiple app secrets with expiration. This allows for secret rotation and provides an even safer experience.
+
+  To manage your application secrets, go to Logto Console -> Applications -> Application Details -> Endpoints & Credentials.
+
+  We've also added a set of Management APIs (`/api/applications/{id}/secrets`) for this purpose.
+
+  > [!Important]
+  > You can still use existing app secrets for client authentication, but it is recommended to delete the old ones and create new secrets with expiration for enhanced security.
+
+- 62f5e5e0c: support dark favicon
+
+  The favicon for the dark theme now can be set in the sign-in experience branding settings.
+
+### Patch Changes
+
+- 3aa7e57b3: fix Google connector `scope` field can not be reset bug
+
+## 1.16.0
+
+### Minor Changes
+
+- eacec10ac: improve machine-to-machine application integration user experience
+
+  - Display a role assignment modal to facilitate setting permissions for the newly created machine-to-machine app.
+  - In the role assignment modal, add a Logto icon to roles that carry the Logto Management API access permission, making it easier for users to select roles with Logto Management API access permission.
+  - Add a notification for machine-to-machine roles to guide users in using the machine-to-machine role by creating a machine-to-machine application.
+  - Improve machine-to-machine application integration guide.
+
+- 87615d58c: support machine-to-machine apps for organizations
+
+  This feature allows machine-to-machine apps to be associated with organizations, and be assigned with organization roles.
+
+  ### Console
+
+  - Add a new "machine-to-machine" type to organization roles. All existing roles are now "user" type.
+  - You can manage machine-to-machine apps in the organization details page -> Machine-to-machine apps section.
+  - You can view the associated organizations in the machine-to-machine app details page.
+
+  ### OpenID Connect grant
+
+  The `client_credentials` grant type is now supported for organizations. You can use this grant type to obtain an access token for an organization.
+
+  ### Management API
+
+  A set of new endpoints are added to the Management API:
+
+  - `/api/organizations/{id}/applications` to manage machine-to-machine apps.
+  - `/api/organizations/{id}/applications/{applicationId}` to manage a specific machine-to-machine app in an organization.
+  - `/api/applications/{id}/organizations` to view the associated organizations of a machine-to-machine app.
+
+- 061a30a87: support agree to terms polices for Logto’s sign-in experiences
+
+  - Automatic: Users automatically agree to terms by continuing to use the service
+  - ManualRegistrationOnly: Users must agree to terms by checking a box during registration, and don't need to agree when signing in
+  - Manual: Users must agree to terms by checking a box during registration or signing in
+
+- ead51e555: add Ruby app guide
+- ef21c7a99: support per-organization multi-factor authentication requirement
+
+  An organization can now require its member to have multi-factor authentication (MFA) configured. If an organization has this requirement and a member does not have MFA configured, the member will not be able to fetch the organization access token.
+
+- 0ef712e4e: support Google One Tap configuration
+- 15953609b: support the dynamic config rendering for connector multi-select configuration
+- b52609a1e: add `hasPassword` to custom JWT user context
+- efa884c40: feature: just-in-time user provisioning for organizations
+
+  This feature allows users to automatically join the organization and be assigned roles upon their first sign-in through some authentication methods. You can set requirements to meet for just-in-time provisioning.
+
+  ### Email domains
+
+  New users will automatically join organizations with just-in-time provisioning if they:
+
+  - Sign up with verified email addresses, or;
+  - Use social sign-in with verified email addresses.
+
+  This applies to organizations that have the same email domain configured.
+
+  To enable this feature, you can add email domain via the Management API or the Logto Console:
+
+  - We added the following new endpoints to the Management API:
+    - `GET /organizations/{organizationId}/jit/email-domains`
+    - `POST /organizations/{organizationId}/jit/email-domains`
+    - `PUT /organizations/{organizationId}/jit/email-domains`
+    - `DELETE /organizations/{organizationId}/jit/email-domains/{emailDomain}`
+  - In the Logto Console, you can manage email domains in the organization details page -> "Just-in-time provisioning" section.
+
+  ### SSO connectors
+
+  New or existing users signing in through enterprise SSO for the first time will automatically join organizations that have just-in-time provisioning configured for the SSO connector.
+
+  To enable this feature, you can add SSO connectors via the Management API or the Logto Console:
+
+  - We added the following new endpoints to the Management API:
+    - `GET /organizations/{organizationId}/jit/sso-connectors`
+    - `POST /organizations/{organizationId}/jit/sso-connectors`
+    - `PUT /organizations/{organizationId}/jit/sso-connectors`
+    - `DELETE /organizations/{organizationId}/jit/sso-connectors/{ssoConnectorId}`
+  - In the Logto Console, you can manage SSO connectors in the organization details page -> "Just-in-time provisioning" section.
+
+  ### Default organization roles
+
+  You can also configure the default roles for users provisioned via this feature. The default roles will be assigned to the user when they are provisioned.
+
+  To enable this feature, you can set the default roles via the Management API or the Logto Console:
+
+  - We added the following new endpoints to the Management API:
+    - `GET /organizations/{organizationId}/jit/roles`
+    - `POST /organizations/{organizationId}/jit/roles`
+    - `PUT /organizations/{organizationId}/jit/roles`
+    - `DELETE /organizations/{organizationId}/jit/roles/{organizationRoleId}`
+  - In the Logto Console, you can manage default roles in the organization details page -> "Just-in-time provisioning" section.
+
+- b50ba0b7e: enable backchannel logout support
+
+  Enable the support of [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html).
+
+  To register for backchannel logout, navigate to the application details page in the Logto Console and locate the "Backchannel logout" section. Enter the backchannel logout URL of your RP and click "Save".
+
+  You can also enable session requirements for backchannel logout. When enabled, Logto will include the `sid` claim in the logout token.
+
+  For programmatic registration, you can set the `backchannelLogoutUri` and `backchannelLogoutSessionRequired` properties in the application `oidcClientMetadata` object.
+
+### Patch Changes
+
+- 9f33d997b: view and update user's `profile` property in the user settings page
+- 06ef19905: fix a regression bug that error toasts pop up in audit log when logs are associated with deleted applications
+- af44e87eb: add Chrome extension guide
+- 136320584: allow skipping manual account linking during sign-in
+
+  You can find this configuration in Console -> Sign-in experience -> Sign-up and sign-in -> Social sign-in -> Automatic account linking.
+
+  When switched on, if a user signs in with a social identity that is new to the system, and there is exactly one existing account with the same identifier (e.g., email), Logto will automatically link the account with the social identity instead of prompting the user for account linking.
+
+- d81e13d21: display OIDC issuer endpoint in the application details form
+
+## 1.15.0
+
+### Minor Changes
+
+- b5104d8c1: add new webhook events
+
+  We introduce a new event type `DataHook` to unlock a series of events that can be triggered by data updates (mostly Management API):
+
+  - User.Created
+  - User.Deleted
+  - User.Data.Updated
+  - User.SuspensionStatus.Updated
+  - Role.Created
+  - Role.Deleted
+  - Role.Data.Updated
+  - Role.Scopes.Updated
+  - Scope.Created
+  - Scope.Deleted
+  - Scope.Data.Updated
+  - Organization.Created
+  - Organization.Deleted
+  - Organization.Data.Updated
+  - Organization.Membership.Updated
+  - OrganizationRole.Created
+  - OrganizationRole.Deleted
+  - OrganizationRole.Data.Updated
+  - OrganizationRole.Scopes.Updated
+  - OrganizationScope.Created
+  - OrganizationScope.Deleted
+  - OrganizationScope.Data.Updated
+
+  DataHook events are triggered when the data associated with the event is updated via management API request or user interaction actions.
+
+  ### Management API triggered events
+
+  | API endpoint                                               | Event                                                       |
+  | ---------------------------------------------------------- | ----------------------------------------------------------- |
+  | POST /users                                                | User.Created                                                |
+  | DELETE /users/:userId                                      | User.Deleted                                                |
+  | PATCH /users/:userId                                       | User.Data.Updated                                           |
+  | PATCH /users/:userId/custom-data                           | User.Data.Updated                                           |
+  | PATCH /users/:userId/profile                               | User.Data.Updated                                           |
+  | PATCH /users/:userId/password                              | User.Data.Updated                                           |
+  | PATCH /users/:userId/is-suspended                          | User.SuspensionStatus.Updated                               |
+  | POST /roles                                                | Role.Created, (Role.Scopes.Update)                          |
+  | DELETE /roles/:id                                          | Role.Deleted                                                |
+  | PATCH /roles/:id                                           | Role.Data.Updated                                           |
+  | POST /roles/:id/scopes                                     | Role.Scopes.Updated                                         |
+  | DELETE /roles/:id/scopes/:scopeId                          | Role.Scopes.Updated                                         |
+  | POST /resources/:resourceId/scopes                         | Scope.Created                                               |
+  | DELETE /resources/:resourceId/scopes/:scopeId              | Scope.Deleted                                               |
+  | PATCH /resources/:resourceId/scopes/:scopeId               | Scope.Data.Updated                                          |
+  | POST /organizations                                        | Organization.Created                                        |
+  | DELETE /organizations/:id                                  | Organization.Deleted                                        |
+  | PATCH /organizations/:id                                   | Organization.Data.Updated                                   |
+  | PUT /organizations/:id/users                               | Organization.Membership.Updated                             |
+  | POST /organizations/:id/users                              | Organization.Membership.Updated                             |
+  | DELETE /organizations/:id/users/:userId                    | Organization.Membership.Updated                             |
+  | POST /organization-roles                                   | OrganizationRole.Created, (OrganizationRole.Scopes.Updated) |
+  | DELETE /organization-roles/:id                             | OrganizationRole.Deleted                                    |
+  | PATCH /organization-roles/:id                              | OrganizationRole.Data.Updated                               |
+  | POST /organization-scopes                                  | OrganizationScope.Created                                   |
+  | DELETE /organization-scopes/:id                            | OrganizationScope.Deleted                                   |
+  | PATCH /organization-scopes/:id                             | OrganizationScope.Data.Updated                              |
+  | PUT /organization-roles/:id/scopes                         | OrganizationRole.Scopes.Updated                             |
+  | POST /organization-roles/:id/scopes                        | OrganizationRole.Scopes.Updated                             |
+  | DELETE /organization-roles/:id/scopes/:organizationScopeId | OrganizationRole.Scopes.Updated                             |
+
+  ### User interaction triggered events
+
+  | User interaction action  | Event             |
+  | ------------------------ | ----------------- |
+  | User email/phone linking | User.Data.Updated |
+  | User MFAs linking        | User.Data.Updated |
+  | User social/SSO linking  | User.Data.Updated |
+  | User password reset      | User.Data.Updated |
+  | User registration        | User.Created      |
+
+- a0b19513b: show version number in the topbar
+- 76fd33b7e: support default roles for users
+
+### Patch Changes
+
+- e04d9523a: replace the i18n translated hook event label with the hook event value directly in the console
+
+  - remove all the legacy interaction hook events i18n phrases
+  - replace the translated label with the hook event value directly in the console
+    - `Create new account` -> `PostRegister`
+    - `Sign in` -> `PostSignIn`
+    - `Reset password` -> `PostResetPassword`
+
+- 558986d28: update documentation reference links
+- c558affac: improve error handling on audit logs
+
+  - No longer toasts error messages if the audit log related user entity has been removed.
+  - Display a fallback `user-id (deleted)` information instead.
+
+## 1.14.0
+
+### Minor Changes
+
+- 21bb35b12: refactor the definition of hook event types
+
+  - Add `DataHook` event types. `DataHook` are triggered by data changes.
+  - Add "interaction" prefix to existing hook event types. Interaction hook events are triggered by end user interactions, e.g. completing sign-in.
+
+- 5872172cb: enable custom JWT feature for OSS version
+
+  OSS version users can now use custom JWT feature to add custom claims to JWT access tokens payload (previously, this feature was only available to Logto Cloud).
+
+- 6fe6f87bc: support adding API resource permissions to organization roles and organization permissions in 3rd-party applications
+
+  ## Updates
+
+  - Separated the "Organization template" from the "Organization" page, establishing it as a standalone page for clearer navigation and functionality.
+  - Enhanced the "Organization template" page by adding functionality that allows users to click on an organization role, which then navigates to the organization role details page where users can view its corresponding permissions and general settings.
+  - Enabled the assignment of API resource permissions directly from the organization role details page, improving role management and access control.
+  - Split the permission list for third-party apps into two separate lists: user permissions and organization permissions. Users can now add user profile permissions and API resource permissions for users under user permissions, and add organization permissions and API resource permissions for organizations under organization permissions.
+
+### Patch Changes
+
+- 9cf03c8ed: Add Java Spring Boot web integration guide to the application creation page
+
+## 1.13.0
+
+### Minor Changes
+
+- 5758f84f5: feat(console): support signing-key rotation
+
+### Patch Changes
+
+- 746483c49: api resource indicator must be a valid absolute uri
+
+  An invalid indicator will make Console crash without this check.
+
+  Note: We don't mark it as a breaking change as the api behavior has not changed, only adding the check on Console.
+
+## 1.12.1
+
+### Patch Changes
+
+- 677054a24: add Angular, Nuxt, SvelteKit, Expo (React Native) guides
+
+## 1.12.0
+
+### Minor Changes
+
+- c14cd1827: add .NET Core Blazor Server guide
+- 32df9acde: add third-party application management pages
+
+  - Add the new application category `Third-party` to the application creation page.
+  - Add the new application framework `OIDC IdP` to the application creation page.
+  - Add new tab `Third-party apps` to the applications management page. Split the existing applications list into `My apps` and `Third-party apps` two different tab for better management.
+  - Reorg the application details page form. Remove the `Advance settings` tab and merge all the OIDC configuration fields into the `Settings` tab.
+  - Add new `Permissions` tab to the third-party application details page. Display the user consent resource, organization, and user scopes. And allow the user to manage the user granted organizations for the third-party application.
+  - Add new `Branding` tab to the third-party application details page. Allow the user to manage the application level sign-in experiences for the third-party application.
+
+- 715dba2ce: add .NET Core Blazor WASM guide
+- 31e60811d: use Node 20 LTS for engine requirement.
+
+  Note: We mark it as minor because Logto is shipping with Docker image and it's not a breaking change for users.
+
+### Patch Changes
+
+- 9089dbf84: upgrade TypeScript to 5.3.3
+- 04ec78a91: improve error handling when user associated application is removed
+- 8c4bfbce1: Remove the upsell tag on social connectors creation modal in OSS version.
+
+## 1.11.0
+
+### Minor Changes
+
+- 9a7b19e49: Add single sign-on (SSO) management pages
+
+  - Implement new enterprise SSO management pages. Allow create and manage SSO connectors through Logto console.
+  - Add enabled/disable SSO toggle switch on the sign-in-experience settings page.
+
+- becf59169: introduce Logto Organizations
+
+  The term "organization" is also used in other forms, such as "workspace", "team", "company", etc. In Logto, we use "organization" as the generic term to represent the concept of multi-tenancy.
+
+  From now, you can create multiple organizations in Logto, each of which can have its own users, while in the same identity pool.
+
+  Plus, we also introduce the concept of "organization template". It is a set of permissions and roles that applies to all organizations, while a user can have different roles in different organizations.
+
+  See [🏢 Organizations (Multi-tenancy)](https://docs.logto.io/docs/recipes/organizations/) for more details.
+
+### Patch Changes
+
+- 9421375d7: Bump libphonenumber-js to v1.10.51 to support China 19 started phone numbers. Thanks to @agileago
+
+## 1.10.0
+
+### Minor Changes
+
+- 6727f629d: feature: introduce multi-factor authentication
+
+  We're excited to announce that Logto now supports multi-factor authentication (MFA) for your sign-in experience. Navigate to the "Multi-factor auth" tab to configure how you want to secure your users' accounts.
+
+  In this release, we introduce the following MFA methods:
+
+  - Authenticator app OTP: users can add any authenticator app that supports the TOTP standard, such as Google Authenticator, Duo, etc.
+  - WebAuthn (Passkey): users can use the standard WebAuthn protocol to register a hardware security key, such as biometric keys, Yubikey, etc.
+  - Backup codes：users can generate a set of backup codes to use when they don't have access to other MFA methods.
+
+  For a smooth transition, we also support to configure the MFA policy to require MFA for sign-in experience, or to allow users to opt-in to MFA.
+
+## 1.9.0
+
+### Minor Changes
+
+- 87df417d1: feat: support HTTP for webhook requests
+
+### Patch Changes
+
+- 1ab39d19b: fix 500 error when using search component in console to filter both roles and applications.
+
+## 1.8.0
+
+### Minor Changes
+
+- a8b5a020f: feature: machine-to-machine (M2M) role-based access control (RBAC)
+
+  ### Summary
+
+  This feature enables Logto users to apply role-based access control (RBAC) to their machine-to-machine (M2M) applications.
+
+  With the update, Logto users can now effectively manage permissions for their M2M applications, resulting in improved security and flexibility.
+
+  #### New role type: machine-to-machine
+
+  We have introduced a new role type, "machine-to-machine".
+
+  - When creating a new role, you can select the type (either "machine-to-machine" or "user" type), with "user" type by default if not specified.
+  - Logto now ONLY allows the selection of the role type during role creation.
+
+  #### Manage "machine-to-machine" roles
+
+  You can manage the permissions of a "machine-to-machine" role in the same way as a "user" role.
+
+  > Logto's management API resources are available to "machine-to-machine" roles but not for "user" roles.
+  > "machine-to-machine" roles can only be assigned to M2M applications; and "user" roles can only be assigned to users.
+
+  You can assign "machine-to-machine" roles to M2M applications in the following two ways:
+
+  - "Applications" on sidebar -> Select an M2M application -> "Roles" tab -> "Assign Roles" button
+  - "Roles" on sidebar -> Select an M2M role -> "Machine-to-machine apps" tab -> "Assign Applications" button
+
+### Patch Changes
+
+- 18181f892: standardize id and secret generators
+
+  - Remove `buildIdGenerator` export from `@logto/shared`
+  - Add `generateStandardSecret` and `generateStandardShortId` exports to `@logto/shared`
+  - Align comment and implementation of `buildIdGenerator` in `@logto/shared`
+    - The comment stated the function will include uppercase letters by default, but it did not; Now it does.
+  - Use `generateStandardSecret` for all secret generation
+
+## 1.7.1
+
+### Patch Changes
+
+- a4b44dde5: add more intuitive code samples and fix mistakes in express api guide
+
+## 1.7.0
+
+### Minor Changes
+
+- e8b0b1d02: feature: password policy
+
+  ### Summary
+
+  This feature enables custom password policy for users. Now it is possible to guard with the following rules when a user is creating a new password:
+
+  - Minimum length (default: `8`)
+  - Minimum character types (default: `1`)
+  - If the password has been pwned (default: `true`)
+  - If the password is exactly the same as or made up of the restricted phrases:
+    - Repetitive or sequential characters (default: `true`)
+    - User information (default: `true`)
+    - Custom words (default: `[]`)
+
+  If you are an existing Logto Cloud user or upgrading from a previous version, to ensure a smooth experience, we'll keep the original policy as much as possible:
+
+  > The original password policy requires a minimum length of 8 and at least 2 character types (letters, numbers, and symbols).
+
+  Note in the new policy implementation, it is not possible to combine lower and upper case letters into one character type. So the original password policy will be translated into the following:
+
+  - Minimum length: `8`
+  - Minimum character types: `2`
+  - Pwned: `false`
+  - Repetitive or sequential characters: `false`
+  - User information: `false`
+  - Custom words: `[]`
+
+  If you want to change the policy, you can do it:
+
+  - Logto Console -> Sign-in experience -> Password policy.
+  - Update `passwordPolicy` property in the sign-in experience via Management API.
+
+  ### Side effects
+
+  - All new users will be affected by the new policy immediately.
+  - Existing users will not be affected by the new policy until they change their password.
+  - We removed password restrictions when adding or updating a user via Management API.
+
+### Patch Changes
+
+- f8408fa77: rename the package `phrases-ui` to `phrases-experience`
+- 18e05586c: fix the app crash when inputting verification code in Console profile page
+- f6723d5e2: rename the package `ui` to `experience`
+
+## 1.6.0
+
+### Minor Changes
+
+- d90b4e7f6: add asp.net core tutorial
+
+### Patch Changes
+
+- 0b519e548: allow non-http origins for application CORS
+
+## 1.5.1
+
+### Patch Changes
+
+- 16d83dd2f: Allow editing refresh token TTL for non-M2M applications (include SPA type)
+
+## 1.5.0
+
+### Minor Changes
+
+- ecbecd8e4: various application improvements
+
+  - Show OpenID Provider configuration endpoint in Console
+  - Configure "Rotate Refresh Token" in Console
+  - Configure "Refresh Token TTL" in Console
+
+## 1.4.0
+
+### Minor Changes
+
+- 73666f8fa: Provide new features for webhooks
+
+  ## Features
+
+  - Manage webhooks via the Admin Console
+  - Securing webhooks by validating signature
+  - Allow to enable/disable a webhook
+  - Track recent execution status of a webhook
+  - Support multi-events for a webhook
+
+  ## Updates
+
+  - schemas: add `name`, `events`, `signingKey`, and `enabled` fields to the `hook` schema
+  - core: change the `user-agent` value from `Logto (https://logto.io)` to `Logto (https://logto.io/)` in the webhook request headers
+  - core: deprecate `event` field in all hook-related APIs, use `events` instead
+  - core: deprecate `retries` field in the `HookConfig` for all hook-related APIs, now it will fallback to `3` if not specified and will be removed in the future
+  - core: add new APIs for webhook management
+    - `GET /api/hooks/:id/recent-logs` to retrieve recent execution logs(24h) of a webhook
+    - `POST /api/hooks/:id/test` to test a webhook
+    - `PATCH /api/hooks/:id/signing-key` to regenerate the signing key of a webhook
+  - core: support query webhook execution stats(24h) via `GET /api/hooks/:id` and `GET /api/hooks/:id` by specifying `includeExecutionStats` query parameter
+  - console: support webhook management
+
+- 268dc50e7: Support setting default API Resource from Console and API
+
+  - New API Resources will not be treated as default.
+  - Added `PATCH /resources/:id/is-default` to setting `isDefault` for an API Resource.
+    - Only one default API Resource is allowed per tenant. Setting one API default will reset all others.
+
+- 497d5b526: Support updating sign-in identifiers in user details form
+  - Admin can now update user sign-in identifiers (username, email, phone number) in the user details form in user management.
+  - Other trivial improvements and fixes, e.g. input field placeholder, error handling, etc.
+
+## 1.3.0
+
+### Minor Changes
+
+- 5d6720805: add config `alwaysIssueRefreshToken` for web apps to unblock OAuth integrations that are not strictly conform OpenID Connect.
+
+  when it's enabled, Refresh Tokens will be always issued regardless if `prompt=consent` was present in the authorization request.
+
+## 1.2.4
+
+### Patch Changes
+
+- a65bc9b13: Should ignore empty number input box when parsing connector config form.
+
+## 1.2.3
+
+### Patch Changes
+
+- 046a5771b: upgrade i18next series packages (#3733, #3743)
+
+## 1.2.2
+
+### Patch Changes
+
+- 748878ce5: add React context and hook to app-insights, fix init issue for frontend projects
+
+## 1.2.1
+
+### Patch Changes
+
+- 352807b16: support setting cloud role name for AppInsights in React
+
+## 1.2.0
+
+### Minor Changes
+
+- c5eb3a2ba: support create user by multiple identifiers
+- 5553425fc: support suspend user
+
+### Patch Changes
+
+- 6cbc90389: ensure all log keys present in the filter, remove deprecated log keys, fix log event filter
+- 457cb2822: Adding social connectors will now mark the related get-started action item as completed.
+- 4945b0be2: Apply security headers
+
+  Apply security headers to logto http request response using (helmetjs)[https://helmetjs.github.io/].
+
+  - [x] crossOriginOpenerPolicy
+  - [x] crossOriginEmbedderPolicy
+  - [x] crossOriginResourcePolicy
+  - [x] hidePoweredBy
+  - [x] hsts
+  - [x] ieNoOpen
+  - [x] noSniff
+  - [x] referrerPolicy
+  - [x] xssFilter
+  - [x] Content-Security-Policy
+
+## 1.1.0
+
+### Patch Changes
+
+- 484f08523: Fix connector config form's validation for "switch" field.
+
+## 1.0.3
+
+## 1.0.2
+
+## 1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- c12717412: **Decouple users and admins**
+
+  ## 💥 BREAKING CHANGES 💥
+
+  Logto was using a single port to serve both normal users and admins, as well as the web console. While we continuously maintain a high level of security, it’ll still be great to decouple these components into two separate parts to keep data isolated and provide a flexible infrastructure.
+
+  From this version, Logto now listens to two ports by default, one for normal users (`3001`), and one for admins (`3002`).
+
+  - Nothing changed for normal users. No adaption is needed.
+  - For admin users:
+    - The default Admin Console URL has been changed to `http://localhost:3002/console`.
+    - To change the admin port, set the environment variable `ADMIN_PORT`. For instance, `ADMIN_PORT=3456`.
+    - You can specify a custom endpoint for admins by setting the environment variable `ADMIN_ENDPOINT`. For example, `ADMIN_ENDPOINT=https://admin.your-domain.com`.
+    - You can now completely disable admin endpoints by setting `ADMIN_DISABLE_LOCALHOST=1` and leaving `ADMIN_ENDPOINT` unset.
+    - Admin Console and admin user data are not accessible via normal user endpoints, including `localhost` and `ENDPOINT` from the environment.
+    - Admin Console no longer displays audit logs of admin users. However, these logs still exist in the database, and Logto still inserts admin user logs. There is just no convenient interface to inspect them.
+    - Due to the data isolation, the numbers on the dashboard may slightly decrease (admins are excluded).
+
+  If you are upgrading from a previous version, simply run the database alteration command as usual, and we'll take care of the rest.
+
+  > **Note** DID YOU KNOW
+  >
+  > Under the hood, we use the powerful Postgres feature Row-Level Security to isolate admin and user data.
+
+- 1c9160112: ### Features
+
+  - Enhanced user search params #2639
+  - Web hooks
+
+  ### Improvements
+
+  - Refactored Interaction APIs and Audit logs
+
+- f41fd3f05: drop settings table and add systems table
+
+  **BREAKING CHANGES**
+
+  - core: removed `GET /settings` and `PATCH /settings` API
+  - core: added `GET /configs/admin-console` and `PATCH /configs/admin-console` API
+    - `/configs/*` APIs are config/key-specific now. they may have different logic per key
+  - cli: change valid `logto db config` keys by removing `alterationState` and adding `adminConsole` since:
+    - OIDC configs and admin console configs are tenant-level configs (the concept of "tenant" can be ignored until we officially announce it)
+    - alteration state is still a system-wide config
+
+### Minor Changes
+
+- 343b1090f: ### Add dynamic favicon and html title
+
+  - Add the favicon field in the sign-in-experience branding settings. Users would be able to upload their own favicon. Use local logto icon as a fallback
+
+  - Set different html title for different pages.
+    - sign-in
+    - register
+    - forgot-password
+    - logto
+
+- c12717412: ## Creating your social connector with ease
+
+  We’re excited to announce that Logto now supports standard protocols (SAML, OIDC, and OAuth2.0) for creating social connectors to integrate external identity providers. Each protocol can create multiple social connectors, giving you more control over your access needs.
+
+  To simplify the process of configuring social connectors, we’re replacing code-edit with simple forms. SAML already supports form configuration, with other connectors coming soon. This means you don’t need to compare documents or worry about code format.
+
+- 343b1090f: - Automatically create a new tenant for new cloud users
+  - Support path-based multi-tenancy
+- 343b1090f: Allow admin tenant admin to create tenants without limitation
+- 343b1090f: ### Add privacy policy url
+
+  In addition to the terms of service url, we also provide a privacy policy url field in the sign-in-experience settings. To better support the end-users' privacy declaration needs.
+
+- 343b1090f: New feature: User account settings page
+
+  - We have removed the previous settings page and moved it to the account settings page. You can access to the new settings menu by clicking the user avatar in the top right corner.
+  - You can directly change the language or theme from the popover menu, and explore more account settings by clicking the "Profile" menu item.
+  - You can update your avatar, name and username in the profile page, and also changing your password.
+  - [Cloud] Cloud users can also link their email address and social accounts (Google and GitHub at first launch).
+
+- 343b1090f: remove the branding style config and make the logo URL config optional
+- 343b1090f: Add custom CSS code editor so that users can apply advanced UI customization.
+  - Users can check the real time preview of the CSS via SIE preview on the right side.
+- 2168936b9: **Sign-in Experience v2**
+
+  We are thrilled to announce the release of the newest version of the Sign-in Experience, which includes more ways to sign-in and sign-up, as well as a framework that is easier to understand and more flexible to configure in the Admin Console.
+
+  When compared to Sign-in Experience v1, this version’s capability was expanded so that it could support a greater variety of flexible use cases. For example, now users can sign up with email verification code and sign in with email and password.
+
+  We hope that this will be able to assist developers in delivering a successful sign-in flow, which will also be appreciated by the end users.
+
+- f41fd3f05: Replace the `sms` naming convention using `phone` cross logto codebase. Including Sign-in Experience types, API paths, API payload and internal variable names.
+
+### Patch Changes
+
+- 343b1090f: ## Refactor the Admin Console 403 flow
+
+  - Add 403 error handler for all AC API requests
+  - Show confirm modal to notify the user who is not authorized
+  - Click `confirm` button to sign out and redirect user to the sign-in page
+
+- 343b1090f: add deletion confirm for in-used passwordless connectors
+- 38970fb88: Fix a Sign-in experience bug that may block some users to sign in.
+- 343b1090f: **Seed data for cloud**
+
+  - cli!: remove `oidc` option for `database seed` command as it's unused
+  - cli: add hidden `--cloud` option for `database seed` command to init cloud data
+  - cli, cloud: appending Redirect URIs to Admin Console will deduplicate values before update
+  - move `UrlSet` and `GlobalValues` to `@logto/shared`
+
+- 1c9160112: Various UI improvements
+
+## 1.0.0-rc.3
+
+## 1.0.0-rc.2
+
+### Major Changes
+
+- c12717412: **Decouple users and admins**
+
+  ## 💥 BREAKING CHANGES 💥
+
+  Logto was using a single port to serve both normal users and admins, as well as the web console. While we continuously maintain a high level of security, it’ll still be great to decouple these components into two separate parts to keep data isolated and provide a flexible infrastructure.
+
+  From this version, Logto now listens to two ports by default, one for normal users (`3001`), and one for admins (`3002`).
+
+  - Nothing changed for normal users. No adaption is needed.
+  - For admin users:
+    - The default Admin Console URL has been changed to `http://localhost:3002/console`.
+    - To change the admin port, set the environment variable `ADMIN_PORT`. For instance, `ADMIN_PORT=3456`.
+    - You can specify a custom endpoint for admins by setting the environment variable `ADMIN_ENDPOINT`. For example, `ADMIN_ENDPOINT=https://admin.your-domain.com`.
+    - You can now completely disable admin endpoints by setting `ADMIN_DISABLE_LOCALHOST=1` and leaving `ADMIN_ENDPOINT` unset.
+    - Admin Console and admin user data are not accessible via normal user endpoints, including `localhost` and `ENDPOINT` from the environment.
+    - Admin Console no longer displays audit logs of admin users. However, these logs still exist in the database, and Logto still inserts admin user logs. There is just no convenient interface to inspect them.
+    - Due to the data isolation, the numbers on the dashboard may slightly decrease (admins are excluded).
+
+  If you are upgrading from a previous version, simply run the database alteration command as usual, and we'll take care of the rest.
+
+  > **Note** DID YOU KNOW
+  >
+  > Under the hood, we use the powerful Postgres feature Row-Level Security to isolate admin and user data.
+
+### Minor Changes
+
+- c12717412: ## Creating your social connector with ease
+
+  We’re excited to announce that Logto now supports standard protocols (SAML, OIDC, and OAuth2.0) for creating social connectors to integrate external identity providers. Each protocol can create multiple social connectors, giving you more control over your access needs.
+
+  To simplify the process of configuring social connectors, we’re replacing code-edit with simple forms. SAML already supports form configuration, with other connectors coming soon. This means you don’t need to compare documents or worry about code format.
+
+## 1.0.0-rc.1
+
+## 1.0.0-rc.0
+
+### Major Changes
+
+- f41fd3f0: drop settings table and add systems table
+
+  **BREAKING CHANGES**
+
+  - core: removed `GET /settings` and `PATCH /settings` API
+  - core: added `GET /configs/admin-console` and `PATCH /configs/admin-console` API
+    - `/configs/*` APIs are config/key-specific now. they may have different logic per key
+  - cli: change valid `logto db config` keys by removing `alterationState` and adding `adminConsole` since:
+    - OIDC configs and admin console configs are tenant-level configs (the concept of "tenant" can be ignored until we officially announce it)
+    - alteration state is still a system-wide config
+
+### Minor Changes
+
+- f41fd3f0: Replace the `sms` naming convention using `phone` cross logto codebase. Including Sign-in Experience types, API paths, API payload and internal variable names.
+
+## 1.0.0-beta.19
+
+## 1.0.0-beta.18
+
+### Major Changes
+
+- 1c916011: ### Features
+
+  - Enhanced user search params #2639
+  - Web hooks
+
+  ### Improvements
+
+  - Refactored Interaction APIs and Audit logs
+
+### Patch Changes
+
+- 1c916011: Various UI improvements
+
 ## 1.0.0-beta.17
 
 ## 1.0.0-beta.16

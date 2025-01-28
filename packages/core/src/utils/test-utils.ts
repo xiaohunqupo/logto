@@ -1,19 +1,22 @@
-import type { MiddlewareType, Context, Middleware } from 'koa';
-import Koa from 'koa';
-import type { IRouterParamContext } from 'koa-router';
-import Router from 'koa-router';
-import type { Provider } from 'oidc-provider';
-import type { QueryResult, QueryResultRow } from 'slonik';
-import { createMockPool, createMockQueryResult } from 'slonik';
+import crypto from 'node:crypto';
+
+import type { QueryResult, QueryResultRow } from '@silverhand/slonik';
+import { createMockPool, createMockQueryResult } from '@silverhand/slonik';
 import type {
   PrimitiveValueExpression,
   TaggedTemplateLiteralInvocation,
-} from 'slonik/dist/src/types.js';
+} from '@silverhand/slonik/dist/src/types.js';
+import type { Context, Middleware, MiddlewareType } from 'koa';
+import Koa from 'koa';
+import type { IRouterParamContext } from 'koa-router';
+import Router from 'koa-router';
 import request from 'supertest';
 
-import type { AuthedRouter, AnonymousRouter } from '#src/routes/types.js';
+import type { AnonymousRouter, ManagementApiRouter } from '#src/routes/types.js';
+import type TenantContext from '#src/tenants/TenantContext.js';
 import type { Options } from '#src/test-utils/jest-koa-mocks/create-mock-context.js';
 import createMockContext from '#src/test-utils/jest-koa-mocks/create-mock-context.js';
+import { MockTenant } from '#src/test-utils/tenant.js';
 
 /**
  *  Slonik Query Mock Utils
@@ -93,7 +96,12 @@ export const createContextWithRouteParameters = (
 
   return {
     ...ctx,
+    set: ctx.set,
+    path: ctx.path,
+    URL: ctx.URL,
+    cookies: ctx.cookies,
     params: {},
+    headers: {},
     router: new Router(),
     _matchedRoute: undefined,
     _matchedRouteName: undefined,
@@ -103,46 +111,24 @@ export const createContextWithRouteParameters = (
 /**
  * Supertest Request Mock Utils
  **/
-type RouteLauncher<T extends AuthedRouter | AnonymousRouter> = (router: T) => void;
-
-type ProviderRouteLauncher<T extends AuthedRouter | AnonymousRouter> = (
+type RouteLauncher<T extends ManagementApiRouter | AnonymousRouter> = (
   router: T,
-  provider: Provider
+  tenant: TenantContext
 ) => void;
 
-export function createRequester(
-  payload:
-    | {
-        anonymousRoutes?: RouteLauncher<AnonymousRouter> | Array<RouteLauncher<AnonymousRouter>>;
-        authedRoutes?: RouteLauncher<AuthedRouter> | Array<RouteLauncher<AuthedRouter>>;
-        middlewares?: Middleware[];
-      }
-    | {
-        anonymousRoutes?:
-          | ProviderRouteLauncher<AnonymousRouter>
-          | Array<ProviderRouteLauncher<AnonymousRouter>>;
-        authedRoutes?: RouteLauncher<AuthedRouter> | Array<RouteLauncher<AuthedRouter>>;
-        middlewares?: Middleware[];
-        provider: Provider;
-      }
-): request.SuperTest<request.Test>;
-
-export function createRequester({
+export function createRequester<StateT, ContextT extends IRouterParamContext, ResponseT>({
   anonymousRoutes,
   authedRoutes,
-  provider,
   middlewares,
+  tenantContext,
 }: {
-  anonymousRoutes?:
-    | RouteLauncher<AnonymousRouter>
-    | Array<RouteLauncher<AnonymousRouter>>
-    | ProviderRouteLauncher<AnonymousRouter>
-    | Array<ProviderRouteLauncher<AnonymousRouter>>;
-  authedRoutes?: RouteLauncher<AuthedRouter> | Array<RouteLauncher<AuthedRouter>>;
-  provider?: Provider;
-  middlewares?: Middleware[];
-}): request.SuperTest<request.Test> {
+  anonymousRoutes?: RouteLauncher<AnonymousRouter> | Array<RouteLauncher<AnonymousRouter>>;
+  authedRoutes?: RouteLauncher<ManagementApiRouter> | Array<RouteLauncher<ManagementApiRouter>>;
+  middlewares?: Array<Middleware<StateT, ContextT, ResponseT>>;
+  tenantContext?: TenantContext;
+}) {
   const app = new Koa();
+  const tenant = tenantContext ?? new MockTenant();
 
   if (middlewares) {
     for (const middleware of middlewares) {
@@ -154,29 +140,23 @@ export function createRequester({
     const anonymousRouter: AnonymousRouter = new Router();
 
     for (const route of Array.isArray(anonymousRoutes) ? anonymousRoutes : [anonymousRoutes]) {
-      if (provider) {
-        route(anonymousRouter, provider);
-      } else {
-        // For test use only
-        // eslint-disable-next-line no-restricted-syntax
-        (route as RouteLauncher<AnonymousRouter>)(anonymousRouter);
-      }
+      route(anonymousRouter, tenant);
     }
 
     app.use(anonymousRouter.routes()).use(anonymousRouter.allowedMethods());
   }
 
   if (authedRoutes) {
-    const authRouter: AuthedRouter = new Router();
+    const authRouter: ManagementApiRouter = new Router();
 
     authRouter.use(async (ctx, next) => {
-      ctx.auth = { type: 'user', id: 'foo' };
+      ctx.auth = { type: 'user', id: 'foo', scopes: new Set() };
 
       return next();
     });
 
     for (const route of Array.isArray(authedRoutes) ? authedRoutes : [authedRoutes]) {
-      route(authRouter);
+      route(authRouter, tenant);
     }
 
     app.use(authRouter.routes()).use(authRouter.allowedMethods());
@@ -184,3 +164,5 @@ export function createRequester({
 
   return request(app.callback());
 }
+
+export const randomString = (length = 10) => crypto.randomBytes(length).toString('hex');

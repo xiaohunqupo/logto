@@ -8,7 +8,7 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 concurrency: 
-  group: commitlint-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -16,15 +16,18 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node and pnpm
-        uses: silverhand-io/actions-node-pnpm-run-steps@v2
+        uses: silverhand-io/actions-node-pnpm-run-steps@v5
+        with:
+          pnpm-version: 9
 
       - name: Commitlint
-        run: npx commitlint --from HEAD~${{ github.event.pull_request.commits }} --to HEAD
+        # Credit to https://stackoverflow.com/a/67365254/12514940
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
       - name: Commitlint on PR title
         run: echo '${{ github.event.pull_request.title }}' | npx commitlint

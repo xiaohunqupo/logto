@@ -1,18 +1,19 @@
-import type { IncomingHttpHeaders } from 'http';
+import type { Role, User } from '@logto/schemas';
 
-import type { User } from '@logto/schemas';
-
-import { authedAdminApi, deleteUser } from '#src/api/index.js';
-import { createUserByAdmin, expectRejects } from '#src/helpers.js';
+import { assignRolesToUser, authedAdminApi, createUser, deleteUser } from '#src/api/index.js';
+import { createRole, deleteRole } from '#src/api/role.js';
+import { createUserByAdmin, expectRejects } from '#src/helpers/index.js';
+import { OrganizationApiTest } from '#src/helpers/organization.js';
+import { UserApiTest } from '#src/helpers/user.js';
 
 const getUsers = async <T>(
   init: string[][] | Record<string, string> | URLSearchParams
-): Promise<{ headers: IncomingHttpHeaders; json: T }> => {
-  const { headers, body } = await authedAdminApi.get('users', {
+): Promise<{ headers: Headers; json: T }> => {
+  const response = await authedAdminApi.get('users', {
     searchParams: new URLSearchParams(init),
   });
 
-  return { headers, json: JSON.parse(body) as T };
+  return { headers: response.headers, json: (await response.json()) as T };
 };
 
 describe('admin console user search params', () => {
@@ -36,11 +37,9 @@ describe('admin console user search params', () => {
     const emailSuffix = ['@gmail.com', '@foo.bar', '@geek.best'];
     const phonePrefix = ['101', '102', '202'];
 
-    // We can make sure this
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     // eslint-disable-next-line @silverhand/fp/no-mutation
     users = await Promise.all(
-      rawNames.map((raw, index) => {
+      rawNames.map(async (raw, index) => {
         const username = raw.split(' ').join('_');
         const name = raw
           .split(' ')
@@ -51,54 +50,36 @@ describe('admin console user search params', () => {
         const primaryPhone =
           phonePrefix[index % phonePrefix.length]! + index.toString().padStart(5, '0');
 
-        return createUserByAdmin(
-          prefix + username,
-          undefined,
-          primaryEmail,
-          primaryPhone,
-          name,
-          index < 3
-        );
+        return createUserByAdmin({ username: prefix + username, primaryEmail, primaryPhone, name });
       })
     );
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
   });
 
   afterAll(async () => {
-    await Promise.all(users.map(({ id }) => deleteUser(id)));
+    await Promise.all(users.map(async ({ id }) => deleteUser(id)));
   });
 
   it('should return all users if nothing specified', async () => {
     const { headers } = await getUsers<User[]>([]);
 
-    expect(Number(headers['total-number'])).toBeGreaterThanOrEqual(10);
+    expect(Number(headers.get('total-number'))).toBeGreaterThanOrEqual(10);
   });
 
   describe('falling back to `like` mode and matches all available fields if only `search` is specified', () => {
     it('should search username', async () => {
       const { headers, json } = await getUsers<User[]>([['search', '%search_tom%']]);
 
-      expect(headers['total-number']).toEqual('5');
+      expect(headers.get('total-number')).toEqual('5');
       expect(json.length === 5 && json.every((user) => user.name === 'Tom Scott')).toBeTruthy();
     });
 
     it('should search primaryPhone', async () => {
       const { headers, json } = await getUsers<User[]>([['search', '%0000%']]);
 
-      expect(headers['total-number']).toEqual('10');
+      expect(headers.get('total-number')).toEqual('10');
       expect(
         json.length === 10 && json.every((user) => user.username?.startsWith('search_'))
       ).toBeTruthy();
-    });
-
-    it('should be able to hide admin users', async () => {
-      const { headers, json } = await getUsers<User[]>([
-        ['search', '%search_tom%'],
-        ['hideAdminUser', 'true'],
-      ]);
-
-      expect(headers['total-number']).toEqual('2');
-      expect(json.length === 2 && json.every((user) => user.name === 'Tom Scott')).toBeTruthy();
     });
   });
 
@@ -109,7 +90,7 @@ describe('admin console user search params', () => {
       ['isCaseSensitive', 'true'],
     ]);
 
-    expect(headers['total-number']).toEqual('0');
+    expect(headers.get('total-number')).toEqual('0');
     expect(json.length === 0).toBeTruthy();
   });
 
@@ -119,7 +100,7 @@ describe('admin console user search params', () => {
       ['mode.name', 'exact'],
     ]);
 
-    expect(headers['total-number']).toEqual('2');
+    expect(headers.get('total-number')).toEqual('2');
     expect(json.length === 2 && json.every((user) => user.name === 'Jerry Swift')).toBeTruthy();
   });
 
@@ -134,7 +115,7 @@ describe('admin console user search params', () => {
       ['isCaseSensitive', 'true'],
     ]);
 
-    expect(headers['total-number']).toEqual('2');
+    expect(headers.get('total-number')).toEqual('2');
     expect(json.length === 2 && json.every((user) => user.name === 'Jerry Swift Jr')).toBeTruthy();
   });
 
@@ -145,12 +126,11 @@ describe('admin console user search params', () => {
       ['search.username', 'search_tom%'],
       ['mode.username', 'similar_to'],
       ['isCaseSensitive', 'true'],
-      ['hideAdminUser', 'true'],
     ]);
 
-    expect(headers['total-number']).toEqual('2');
+    expect(headers.get('total-number')).toEqual('5');
     expect(
-      json.length === 2 && json.every((user) => user.username?.startsWith('search_'))
+      json.length === 5 && json.every((user) => user.username?.startsWith('search_'))
     ).toBeTruthy();
   });
 
@@ -162,15 +142,13 @@ describe('admin console user search params', () => {
       ['mode.primaryEmail', 'exact'],
     ]);
 
-    expect(headers['total-number']).toEqual('3');
+    expect(headers.get('total-number')).toEqual('3');
     expect(
       json.length === 3 && json.every((user) => user.name?.startsWith('Jerry Swift Jr'))
     ).toBeTruthy();
   });
 
   it('should accept multiple value for exact match 2', async () => {
-    // We can make sure this
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     const { headers, json } = await getUsers<User[]>([
       ['search.id', users[0]!.id],
       ['search.id', users[1]!.id],
@@ -180,9 +158,8 @@ describe('admin console user search params', () => {
       ['mode.id', 'exact'],
       ['isCaseSensitive', 'true'],
     ]);
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
-    expect(headers['total-number']).toEqual('3');
+    expect(headers.get('total-number')).toEqual('3');
     expect(
       json.length === 3 && json.every((user) => user.username?.startsWith('search_'))
     ).toBeTruthy();
@@ -195,8 +172,7 @@ describe('admin console user search params', () => {
         ['search.primaryEmail', 'jerry_swift_jr_2@geek.best'],
         ['search.primaryEmail', 'jerry_swift_jr_jr@gmail.com'],
       ]),
-      'request.invalid_input',
-      '`exact`'
+      { code: 'request.invalid_input', status: 400, messageIncludes: '`exact`' }
     );
   });
 
@@ -206,8 +182,11 @@ describe('admin console user search params', () => {
         ['search.primaryEmail', ''],
         ['search', 'tom'],
       ]),
-      'request.invalid_input',
-      'cannot be empty'
+      {
+        code: 'request.invalid_input',
+        status: 400,
+        messageIncludes: 'cannot be empty',
+      }
     );
   });
 
@@ -217,8 +196,11 @@ describe('admin console user search params', () => {
         ['search.primaryEmail', '%gmail%'],
         ['mode.primaryEmail', 'similar_to'],
       ]),
-      'request.invalid_input',
-      'case-insensitive'
+      {
+        code: 'request.invalid_input',
+        status: 400,
+        messageIncludes: 'case-insensitive',
+      }
     );
   });
 
@@ -229,22 +211,159 @@ describe('admin console user search params', () => {
           ['search.primaryEmail', '%gmail%'],
           ['mode.primaryEmail', 'similar to'],
         ]),
-        'request.invalid_input',
-        'is not valid'
+        {
+          code: 'request.invalid_input',
+          status: 400,
+          messageIncludes: 'is not valid',
+        }
       ),
-      expectRejects(
-        getUsers<User[]>([['search.email', '%gmail%']]),
-        'request.invalid_input',
-        'is not valid'
-      ),
+      expectRejects(getUsers<User[]>([['search.email', '%gmail%']]), {
+        code: 'request.invalid_input',
+        status: 400,
+        messageIncludes: 'is not valid',
+      }),
       expectRejects(
         getUsers<User[]>([
           ['search.primaryEmail', '%gmail%'],
           ['joint', 'and1'],
         ]),
-        'request.invalid_input',
-        'is not valid'
+        {
+          code: 'request.invalid_input',
+          status: 400,
+          messageIncludes: 'is not valid',
+        }
       ),
     ]);
+  });
+});
+
+describe('admin console user search params - excludeRoleId', () => {
+  const users: User[] = [];
+  const roles: Role[] = [];
+  const userPrefix = `search_exclude_role_`;
+  const rolePrefix = `role_`;
+
+  beforeAll(async () => {
+    // Create users with different roles
+    // eslint-disable-next-line @silverhand/fp/no-mutating-methods
+    users.push(
+      ...(await Promise.all([
+        createUser({ username: userPrefix + '1' }),
+        createUser({ username: userPrefix + '2' }),
+        createUser({ username: userPrefix + '3' }),
+      ]))
+    );
+    // eslint-disable-next-line @silverhand/fp/no-mutating-methods
+    roles.push(
+      ...(await Promise.all([
+        createRole({ name: rolePrefix + '1' }),
+        createRole({ name: rolePrefix + '2' }),
+        createRole({ name: rolePrefix + '3' }),
+      ]))
+    );
+
+    // Assign roles to users
+    await Promise.all([
+      assignRolesToUser(users[0]!.id, [roles[0]!.id, roles[1]!.id]),
+      assignRolesToUser(users[1]!.id, [roles[1]!.id, roles[2]!.id]),
+      assignRolesToUser(users[2]!.id, [roles[2]!.id]),
+    ]);
+  });
+
+  afterAll(async () => {
+    await Promise.all(users.map(async ({ id }) => deleteUser(id)));
+    await Promise.all(roles.map(async ({ id }) => deleteRole(id)));
+  });
+
+  it('should be able to exclude users with a specific role (1)', async () => {
+    const { headers, json } = await getUsers<User[]>([
+      ['search.username', userPrefix + '%'],
+      ['excludeRoleId', roles[0]!.id],
+    ]);
+
+    expect(headers.get('total-number')).toEqual('2');
+    expect(json).toHaveLength(2);
+    expect(json).toContainEqual(expect.objectContaining({ id: users[1]!.id }));
+    expect(json).toContainEqual(expect.objectContaining({ id: users[2]!.id }));
+  });
+
+  it('should be able to exclude users with a specific role (2)', async () => {
+    const { headers, json } = await getUsers<User[]>([
+      ['search.username', userPrefix + '%'],
+      ['excludeRoleId', roles[1]!.id],
+    ]);
+
+    expect(headers.get('total-number')).toEqual('1');
+    expect(json).toHaveLength(1);
+    expect(json).toContainEqual(expect.objectContaining({ id: users[2]!.id }));
+  });
+});
+
+describe('admin console user search params - excludeOrganizationId', () => {
+  const organizationApi = new OrganizationApiTest();
+  const userApi = new UserApiTest();
+  const organizationPrefix = `search_exclude_organization_`;
+  const userPrefix = `search_exclude_organization_`;
+
+  beforeAll(async () => {
+    await Promise.all([
+      organizationApi.create({ name: organizationPrefix + '1' }),
+      organizationApi.create({ name: organizationPrefix + '2' }),
+      organizationApi.create({ name: organizationPrefix + '3' }),
+    ]);
+
+    await Promise.all([
+      userApi.create({ username: userPrefix + '1' }),
+      userApi.create({ username: userPrefix + '2' }),
+      userApi.create({ username: userPrefix + '3' }),
+    ]);
+
+    const { organizations } = organizationApi;
+    const { users } = userApi;
+
+    await Promise.all([
+      organizationApi.addUsers(organizations[0]!.id, [users[0]!.id, users[1]!.id]),
+      organizationApi.addUsers(organizations[1]!.id, [users[1]!.id, users[2]!.id]),
+      organizationApi.addUsers(organizations[2]!.id, [users[2]!.id]),
+    ]);
+  });
+
+  afterAll(async () => {
+    await organizationApi.cleanUp();
+    await userApi.cleanUp();
+  });
+
+  it('should be able to exclude users with a specific organization (1)', async () => {
+    const { headers, json } = await getUsers<User[]>([
+      ['search.username', userPrefix + '%'],
+      ['excludeOrganizationId', organizationApi.organizations[0]!.id],
+    ]);
+
+    expect(headers.get('total-number')).toEqual('1');
+    expect(json).toHaveLength(1);
+    expect(json).toContainEqual(expect.objectContaining({ id: userApi.users[2]!.id }));
+  });
+
+  it('should be able to exclude users with a specific organization (2)', async () => {
+    const { headers, json } = await getUsers<User[]>([
+      ['search.username', userPrefix + '%'],
+      ['excludeOrganizationId', organizationApi.organizations[1]!.id],
+    ]);
+
+    expect(headers.get('total-number')).toEqual('1');
+    expect(json).toHaveLength(1);
+    expect(json).toContainEqual(expect.objectContaining({ id: userApi.users[0]!.id }));
+  });
+
+  it('should be able to exclude users with a specific organization (3)', async () => {
+    const { headers, json } = await getUsers<User[]>([
+      ['search.username', userPrefix + '%'],
+      ['excludeOrganizationId', organizationApi.organizations[2]!.id],
+    ]);
+
+    expect(headers.get('total-number')).toEqual('2');
+    expect(json).toHaveLength(2);
+    expect(json).toContainEqual(expect.objectContaining({ id: userApi.users[0]!.id }));
+    expect(json).toContainEqual(expect.objectContaining({ id: userApi.users[1]!.id }));
   });
 });

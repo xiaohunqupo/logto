@@ -1,25 +1,28 @@
-import type { RequestErrorBody } from '@logto/schemas';
+import type ky from 'ky';
 import { HTTPError } from 'ky';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BareFetcher } from 'swr';
+import type { Fetcher } from 'swr';
 
-import useApi, { RequestError } from './use-api';
+import { RequestError } from './use-api';
 
-type withTotalNumber<T> = Array<Awaited<T> | number>;
+type KyInstance = typeof ky;
 
-type useSwrFetcherHook = {
-  <T>(): BareFetcher<T>;
-  <T extends unknown[]>(): BareFetcher<withTotalNumber<T>>;
+type WithTotalNumber<T> = Array<Awaited<T> | number>;
+
+type UseSwrFetcherHook = {
+  <T>(api: KyInstance): Fetcher<T>;
+  <T extends unknown[]>(api: KyInstance): Fetcher<WithTotalNumber<T>>;
 };
 
-const useSwrFetcher: useSwrFetcherHook = <T>() => {
-  const api = useApi({ hideErrorToast: true });
+const useSwrFetcher: UseSwrFetcherHook = <T>(api: KyInstance) => {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const fetcher = useCallback<BareFetcher<T | withTotalNumber<T>>>(
-    async (resource, init) => {
+
+  const fetcher = useCallback<Fetcher<T | WithTotalNumber<T>>>(
+    async (resource: string) => {
       try {
-        const response = await api.get(resource, init);
+        const response = await api.get(resource);
+
         const data = await response.json<T>();
 
         if (typeof resource === 'string' && resource.includes('?')) {
@@ -40,8 +43,10 @@ const useSwrFetcher: useSwrFetcherHook = <T>() => {
       } catch (error: unknown) {
         if (error instanceof HTTPError) {
           const { response } = error;
-          const metadata = await response.json<RequestErrorBody>();
-          throw new RequestError(response.status, metadata);
+
+          // See https://stackoverflow.com/questions/53511974/javascript-fetch-failed-to-execute-json-on-response-body-stream-is-locked
+          // for why `.clone()` is needed
+          throw new RequestError(response.status, await response.clone().json());
         }
         throw error;
       }

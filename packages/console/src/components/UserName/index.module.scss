@@ -4,13 +4,19 @@
   font: var(--body-medium);
   color: var(--color-text);
 
-  .userId {
-    font: var(--body-small);
-    color: var(--color-text-secondary);
-    margin-left: _.unit(1);
+  .title {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    @include _.text-ellipsis;
+
+    span {
+      margin-inline-start: _.unit(2);
+    }
   }
 
   .link {
+    display: inline-flex;
     text-decoration: none;
     color: var(--color-text-link);
   }

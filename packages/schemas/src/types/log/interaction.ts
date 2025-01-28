@@ -1,3 +1,4 @@
+import { type VerificationType, type MfaFactor } from '../../foundations/index.js';
 import type { InteractionEvent } from '../interactions.js';
 
 export type Prefix = 'Interaction';
@@ -9,6 +10,9 @@ export enum Field {
   Event = 'Event',
   Identifier = 'Identifier',
   Profile = 'Profile',
+  BindMfa = 'BindMfa',
+  Mfa = 'Mfa',
+  Verification = 'Verification',
 }
 
 /** Method to verify the identifier */
@@ -16,6 +20,7 @@ export enum Method {
   Password = 'Password',
   VerificationCode = 'VerificationCode',
   Social = 'Social',
+  SingleSignOn = 'SingleSignOn',
 }
 
 export enum Action {
@@ -25,6 +30,8 @@ export enum Action {
   Update = 'Update',
   /** Submit updated info to an entity, or submit to the system. (E.g. submit an interaction, submit a verification code to get verified) */
   Submit = 'Submit',
+  /** Delete a existing entity. (E.g delete profile ) */
+  Delete = 'Delete',
   /** Change an entity to the end state. (E.g. end an interaction) */
   End = 'End',
 }
@@ -68,12 +75,27 @@ export enum Action {
  */
 export type LogKey =
   | `${Prefix}.${Action.Create | Action.End}`
-  | `${Prefix}.${InteractionEvent}.${Action.Update | Action.Submit}`
-  | `${Prefix}.${InteractionEvent}.${Field.Profile}.${Action.Update}`
-  | `${Prefix}.${InteractionEvent}.${Field.Identifier}.${Method.VerificationCode}.${
+  | `${Prefix}.${InteractionEvent}.${Action.Create | Action.Update | Action.Submit}`
+  | `${Prefix}.${InteractionEvent}.${Field.Profile}.${
+      | Action.Update // PATCH profile
+      | Action.Create // PUT profile
+      | Action.Delete}`
+  | `${Prefix}.${Exclude<
+      InteractionEvent,
+      InteractionEvent.ForgotPassword
+    >}.${Field.Identifier}.${Exclude<Method, Method.Password>}.${Action.Create | Action.Submit}`
+  | `${Prefix}.${Exclude<
+      InteractionEvent,
+      InteractionEvent.ForgotPassword
+    >}.${Field.Identifier}.${Method.Password}.${Action.Submit}`
+  | `${Prefix}.${InteractionEvent.ForgotPassword}.${Field.Identifier}.${Method.VerificationCode}.${
       | Action.Create
       | Action.Submit}`
-  | `${Prefix}.${InteractionEvent}.${Field.Identifier}.${Exclude<
-      Method,
-      Method.VerificationCode
-    >}.${Action.Submit}`;
+  | `${Prefix}.${InteractionEvent}.${Field.BindMfa}.${MfaFactor}.${Action.Submit | Action.Create}`
+  | `${Prefix}.${InteractionEvent.SignIn}.${Field.Mfa}.${MfaFactor}.${
+      | Action.Submit
+      | Action.Create}`
+  | `${Prefix}.${InteractionEvent}.${Field.Verification}.${VerificationType}.${Action}`
+  | `${Prefix}.${InteractionEvent}.${Field.Identifier}.${Action.Submit}`
+  // IdpInitiatedSingleSignOn log, used upon receiving a SAML request from the IdP
+  | `${Prefix}.${InteractionEvent.SignIn}.${Field.Verification}.IdpInitiatedSso.${Action.Create}`;

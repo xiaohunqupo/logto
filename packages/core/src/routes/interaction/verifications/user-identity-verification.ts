@@ -1,9 +1,8 @@
 import { deduplicate } from '@silverhand/essentials';
 
 import RequestError from '#src/errors/RequestError/index.js';
-import { findSocialRelatedUser } from '#src/libraries/social.js';
+import type TenantContext from '#src/tenants/TenantContext.js';
 import assertThat from '#src/utils/assert-that.js';
-import { maskUserInfo } from '#src/utils/format.js';
 
 import type {
   SocialIdentifier,
@@ -15,12 +14,14 @@ import type {
   Identifier,
 } from '../types/index.js';
 import findUserByIdentifier from '../utils/find-user-by-identifier.js';
-import { isAccountVerifiedInteractionResult, categorizeIdentifiers } from '../utils/interaction.js';
+import { categorizeIdentifiers } from '../utils/interaction.js';
 
 const identifyUserByVerifiedEmailOrPhone = async (
+  tenant: TenantContext,
   identifier: VerifiedEmailIdentifier | VerifiedPhoneIdentifier
 ) => {
   const user = await findUserByIdentifier(
+    tenant,
     identifier.key === 'emailVerified' ? { email: identifier.value } : { phone: identifier.value }
   );
 
@@ -36,20 +37,25 @@ const identifyUserByVerifiedEmailOrPhone = async (
   return id;
 };
 
-const identifyUserBySocialIdentifier = async (identifier: SocialIdentifier) => {
+const identifyUserBySocialIdentifier = async (
+  tenant: TenantContext,
+  identifier: SocialIdentifier
+) => {
   const { connectorId, userInfo } = identifier;
 
-  const user = await findUserByIdentifier({ connectorId, userInfo });
+  const user = await findUserByIdentifier(tenant, { connectorId, userInfo });
 
   if (!user) {
-    const relatedInfo = await findSocialRelatedUser(userInfo);
+    const relatedInfo = await tenant.libraries.socials.findSocialRelatedUser(userInfo);
 
     throw new RequestError(
       {
         code: 'user.identity_not_exist',
         status: 422,
       },
-      relatedInfo && { relatedUser: maskUserInfo(relatedInfo[0]) }
+      {
+        ...(relatedInfo && { relatedUser: relatedInfo[0] }),
+      }
     );
   }
 
@@ -60,46 +66,39 @@ const identifyUserBySocialIdentifier = async (identifier: SocialIdentifier) => {
   return id;
 };
 
-const identifyUser = async (identifier: Identifier) => {
+const identifyUser = async (tenant: TenantContext, identifier: Identifier) => {
   if (identifier.key === 'social') {
-    return identifyUserBySocialIdentifier(identifier);
+    return identifyUserBySocialIdentifier(tenant, identifier);
   }
 
   if (identifier.key === 'accountId') {
     return identifier.value;
   }
 
-  return identifyUserByVerifiedEmailOrPhone(identifier);
+  return identifyUserByVerifiedEmailOrPhone(tenant, identifier);
 };
 
 export default async function verifyUserAccount(
+  tenant: TenantContext,
   interaction: SignInInteractionResult | ForgotPasswordInteractionResult
 ): Promise<AccountVerifiedInteractionResult> {
   const { identifiers = [], accountId, profile } = interaction;
 
-  const { userAccountIdentifiers, profileIdentifiers } = categorizeIdentifiers(
-    identifiers,
-    profile
-  );
+  // Only verify authIdentifiers, should ignore those profile identifiers
+  const { authIdentifiers } = categorizeIdentifiers(identifiers, profile);
 
-  // Return the interaction directly if it is accountVerified and has no unverified userAccountIdentifiers
-  // e.g. profile fulfillment request with account already verified in the interaction result
-  if (isAccountVerifiedInteractionResult(interaction) && userAccountIdentifiers.length === 0) {
-    return interaction;
-  }
-
-  // _userAccountIdentifiers is required to identify a user account
+  // _authIdentifiers is required to identify a user account
   assertThat(
-    userAccountIdentifiers.length > 0,
+    authIdentifiers.length > 0,
     new RequestError({
       code: 'session.identifier_not_found',
       status: 404,
     })
   );
 
-  // Verify userAccountIdentifiers
+  // Verify authIdentifiers
   const accountIds = await Promise.all(
-    userAccountIdentifiers.map(async (identifier) => identifyUser(identifier))
+    authIdentifiers.map(async (identifier) => identifyUser(tenant, identifier))
   );
   const deduplicateAccountIds = deduplicate(accountIds);
 
@@ -112,10 +111,9 @@ export default async function verifyUserAccount(
     new RequestError('session.verification_failed')
   );
 
-  // Return the verified interaction and remove the consumed userAccountIdentifiers
   return {
     ...interaction,
-    identifiers: profileIdentifiers,
+    identifiers,
     accountId: deduplicateAccountIds[0],
   };
 }

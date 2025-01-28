@@ -4,21 +4,14 @@
   "commit": false,
   "//": "CAUTION: When updating the fields below, you should also update README accordingly.",
   "fixed": [[
+    "@logto/core",
+    "@logto/schemas",
     "@logto/cli",
     "@logto/create"
-  ], [
-    "@logto/core",
-    "@logto/console",
-    "@logto/integration-tests",
-    "@logto/ui"
   ]],
-  "linked": [[
-    "@logto/schemas",
-    "@logto/phrases",
-    "@logto/phrases-ui"
-  ]],
+  "linked": [],
   "//": "END OF CAUTION",
   "access": "restricted",
   "baseBranch": "master",
-  "updateInternalDependencies": "patch"
+  "updateInternalDependencies": "minor"
 }

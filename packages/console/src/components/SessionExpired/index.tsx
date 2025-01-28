@@ -1,33 +1,24 @@
 import { useLogto } from '@logto/react';
-import { useTranslation } from 'react-i18next';
-import { useHref } from 'react-router-dom';
+import { useEffect } from 'react';
 
-import AppError from '../AppError';
-import Button from '../Button';
-import * as styles from './index.module.scss';
+import useRedirectUri from '@/hooks/use-redirect-uri';
+import { saveRedirect } from '@/utils/storage';
 
-const SessionExpired = () => {
-  const { error, signIn } = useLogto();
-  const href = useHref('/callback');
-  const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+import AppLoading from '../AppLoading';
 
-  return (
-    <AppError
-      title={t('session_expired.title')}
-      errorMessage={t('session_expired.subtitle')}
-      callStack={error?.stack}
-    >
-      <Button
-        className={styles.retryButton}
-        size="large"
-        type="outline"
-        title="session_expired.button"
-        onClick={() => {
-          void signIn(new URL(href, window.location.origin).toString());
-        }}
-      />
-    </AppError>
-  );
-};
+/** This component shows a loading indicator and tries to sign in again. */
+function SessionExpired() {
+  const { signIn, isLoading } = useLogto();
+  const redirectUri = useRedirectUri();
+
+  useEffect(() => {
+    if (!isLoading) {
+      saveRedirect();
+      void signIn(redirectUri.href);
+    }
+  }, [signIn, isLoading, redirectUri]);
+
+  return <AppLoading />;
+}
 
 export default SessionExpired;

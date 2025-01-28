@@ -1,8 +1,8 @@
-import type { HookEvent } from '../../models/hooks.js';
+import type { HookEvent } from '../../foundations/index.js';
 
 /** The type of a hook event. */
 export enum Type {
-  ExchangeTokenBy = 'TriggerHook',
+  TriggerHook = 'TriggerHook',
 }
 
 export type LogKey = `${Type}.${HookEvent}`;

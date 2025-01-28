@@ -5,55 +5,90 @@ import { number } from 'zod';
 import RequestError from '#src/errors/RequestError/index.js';
 import { buildLink } from '#src/utils/pagination.js';
 
-export type Pagination = {
+type Pagination = {
   offset: number;
   limit: number;
   totalCount?: number;
+  disabled?: false;
 };
 
-export type WithPaginationContext<ContextT> = ContextT & {
-  pagination: Pagination;
+type DisabledPagination = {
+  offset: undefined;
+  limit: undefined;
+  totalCount: undefined;
+  disabled: true;
 };
 
-export type PaginationConfig = {
+export type WithPaginationContext<ContextT, IsOptional extends boolean> = ContextT & {
+  pagination: IsOptional extends true ? Pagination | DisabledPagination : Pagination;
+};
+
+type PaginationConfig<IsOptional extends boolean> = {
   defaultPageSize?: number;
   maxPageSize?: number;
+  isOptional?: IsOptional;
 };
 
 export const isPaginationMiddleware = <Type extends IMiddleware>(
   function_: Type
-): function_ is WithPaginationContext<Type> => function_.name === 'paginationMiddleware';
+): function_ is WithPaginationContext<Type, true> => function_.name === 'paginationMiddleware';
 
 export const fallbackDefaultPageSize = 20;
+export const pageNumberKey = 'page';
+export const pageSizeKey = 'page_size';
 
-export default function koaPagination<StateT, ContextT, ResponseBodyT>({
+function koaPagination<StateT, ContextT, ResponseBodyT>(
+  config?: PaginationConfig<false>
+): MiddlewareType<StateT, WithPaginationContext<ContextT, false>, ResponseBodyT>;
+function koaPagination<StateT, ContextT, ResponseBodyT>(
+  config: PaginationConfig<true>
+): MiddlewareType<StateT, WithPaginationContext<ContextT, true>, ResponseBodyT>;
+function koaPagination<StateT, ContextT, ResponseBodyT>(
+  config?: PaginationConfig<boolean>
+): MiddlewareType<StateT, WithPaginationContext<ContextT, boolean>, ResponseBodyT>;
+function koaPagination<StateT, ContextT, ResponseBodyT, IsOptional extends boolean>({
   defaultPageSize = fallbackDefaultPageSize,
   maxPageSize = 100,
-}: PaginationConfig = {}): MiddlewareType<StateT, WithPaginationContext<ContextT>, ResponseBodyT> {
+  isOptional,
+}: PaginationConfig<IsOptional> = {}): MiddlewareType<
+  StateT,
+  WithPaginationContext<ContextT, true>,
+  ResponseBodyT
+> {
   // Name this anonymous function for the utility function `isPaginationMiddleware` to identify it
   const paginationMiddleware: MiddlewareType<
     StateT,
-    WithPaginationContext<ContextT>,
+    WithPaginationContext<ContextT, true>,
     ResponseBodyT
+    // eslint-disable-next-line complexity -- maybe refactor me
   > = async (ctx, next) => {
     try {
       const {
         request: {
-          query: { page, page_size },
+          query: { [pageNumberKey]: rawPageNumber, [pageSizeKey]: rawPageSize },
         },
       } = ctx;
+      // If isOptional is set to true, user can disable pagination by
+      // set both `page` and `page_size` to empty
+      const disabled = !rawPageNumber && !rawPageSize && isOptional;
       // Query values are all string, need to convert to number first.
-      const pageNumber = page ? number().positive().parse(Number(page)) : 1;
-      const pageSize = page_size
-        ? number().positive().max(maxPageSize).parse(Number(page_size))
+      const pageNumber = rawPageNumber ? number().positive().parse(Number(rawPageNumber)) : 1;
+      const pageSize = rawPageSize
+        ? number().positive().max(maxPageSize).parse(Number(rawPageSize))
         : defaultPageSize;
 
-      ctx.pagination = { offset: (pageNumber - 1) * pageSize, limit: pageSize };
+      ctx.pagination = disabled
+        ? { disabled, totalCount: undefined, offset: undefined, limit: undefined }
+        : { disabled, totalCount: undefined, offset: (pageNumber - 1) * pageSize, limit: pageSize };
     } catch {
       throw new RequestError({ code: 'guard.invalid_pagination', status: 400 });
     }
 
     await next();
+
+    if (ctx.pagination.disabled) {
+      return;
+    }
 
     // Total count value should be returned, else return internal server-error.
     if (ctx.pagination.totalCount === undefined) {
@@ -82,3 +117,5 @@ export default function koaPagination<StateT, ContextT, ResponseBodyT>({
 
   return paginationMiddleware;
 }
+
+export default koaPagination;

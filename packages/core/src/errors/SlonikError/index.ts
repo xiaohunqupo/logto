@@ -1,39 +1,42 @@
 import type { SchemaLike, GeneratedSchema } from '@logto/schemas';
-import type { OmitAutoSetFields, UpdateWhereData } from '@logto/shared';
-import { SlonikError } from 'slonik';
+import type { UpdateWhereData } from '@logto/shared';
+import { SlonikError } from '@silverhand/slonik';
+
+import { type OmitAutoSetFields } from '#src/utils/sql.js';
 
 export class DeletionError extends SlonikError {
-  table?: string;
-  id?: string;
-
-  public constructor(table?: string, id?: string) {
+  public constructor(
+    public readonly table?: string,
+    public readonly id?: string
+  ) {
     super('Resource not found.');
-
-    this.table = table;
-    this.id = id;
   }
 }
 
-export class UpdateError<Schema extends SchemaLike> extends SlonikError {
-  schema: GeneratedSchema<Schema>;
-  detail: UpdateWhereData<Schema>;
-
-  public constructor(schema: GeneratedSchema<Schema>, detail: UpdateWhereData<Schema>) {
+export class UpdateError<
+  Key extends string,
+  CreateSchema extends Partial<SchemaLike<Key>>,
+  Schema extends SchemaLike<Key>,
+  SetKey extends Key,
+  WhereKey extends Key,
+> extends SlonikError {
+  public constructor(
+    public readonly schema: GeneratedSchema<Key, CreateSchema, Schema>,
+    public readonly detail: Partial<UpdateWhereData<SetKey, WhereKey>>
+  ) {
     super('Resource not found.');
-
-    this.schema = schema;
-    this.detail = detail;
   }
 }
 
-export class InsertionError<Schema extends SchemaLike> extends SlonikError {
-  schema: GeneratedSchema<Schema>;
-  detail?: OmitAutoSetFields<Schema>;
-
-  public constructor(schema: GeneratedSchema<Schema>, detail?: OmitAutoSetFields<Schema>) {
+export class InsertionError<
+  Key extends string,
+  CreateSchema extends Partial<SchemaLike<Key>>,
+  Schema extends SchemaLike<Key>,
+> extends SlonikError {
+  public constructor(
+    public readonly schema: GeneratedSchema<Key, CreateSchema, Schema>,
+    public readonly detail?: OmitAutoSetFields<CreateSchema>
+  ) {
     super('Create Error.');
-
-    this.schema = schema;
-    this.detail = detail;
   }
 }

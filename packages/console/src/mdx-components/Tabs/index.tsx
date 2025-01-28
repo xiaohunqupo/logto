@@ -6,23 +6,27 @@
  */
 
 import type { Nullable } from '@silverhand/essentials';
+import classNames from 'classnames';
 import { useState, isValidElement, type ReactElement, cloneElement, useRef, Children } from 'react';
 
 import type { Props as TabItemProps } from '../TabItem';
-import * as styles from './index.module.scss';
+
+import styles from './index.module.scss';
+
+type MaybeArray<T> = T | T[];
 
 type Props = {
-  className?: string;
-  children: ReactElement<TabItemProps>;
+  readonly className?: string;
+  readonly children: MaybeArray<ReactElement<TabItemProps>>;
 };
 
 // A very rough duck type, but good enough to guard against mistakes while
 // allowing customization
 function isTabItem(comp: ReactElement): comp is ReactElement<TabItemProps> {
-  return typeof comp.props.value !== 'undefined';
+  return comp.props.value !== undefined;
 }
 
-const Tabs = ({ className, children }: Props): JSX.Element => {
+function Tabs({ className, children }: Props): JSX.Element {
   const verifiedChildren = Children.map(children, (child) => {
     if (isValidElement(child) && isTabItem(child)) {
       return child;
@@ -57,14 +61,13 @@ const Tabs = ({ className, children }: Props): JSX.Element => {
       case 'ArrowLeft': {
         const previousTab = tabReferences.current.indexOf(event.currentTarget) - 1;
         // eslint-disable-next-line @silverhand/fp/no-mutation
-        focusElement =
-          tabReferences.current[previousTab] ??
-          tabReferences.current[tabReferences.current.length - 1] ??
-          null;
+        focusElement = tabReferences.current[previousTab] ?? tabReferences.current.at(-1) ?? null;
         break;
       }
-      default:
+
+      default: {
         break;
+      }
     }
 
     focusElement?.focus();
@@ -72,7 +75,11 @@ const Tabs = ({ className, children }: Props): JSX.Element => {
 
   return (
     <div className={styles.container}>
-      <ul role="tablist" aria-orientation="horizontal" className={className}>
+      <ul
+        role="tablist"
+        aria-orientation="horizontal"
+        className={classNames(styles.tabItemList, className)}
+      >
         {values.map(({ value, label }, index) => (
           <li
             key={value}
@@ -105,6 +112,6 @@ const Tabs = ({ className, children }: Props): JSX.Element => {
       </div>
     </div>
   );
-};
+}
 
 export default Tabs;

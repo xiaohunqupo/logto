@@ -1,12 +1,27 @@
-import { generateStandardId } from '@logto/core-kit';
 import type { LogContextPayload, LogKey } from '@logto/schemas';
 import { LogResult } from '@logto/schemas';
+import { generateStandardId } from '@logto/shared';
 import { pick } from '@silverhand/essentials';
 import type { Context, MiddlewareType } from 'koa';
 import type { IRouterParamContext } from 'koa-router';
 
 import RequestError from '#src/errors/RequestError/index.js';
-import { insertLog } from '#src/queries/log.js';
+import type Queries from '#src/tenants/Queries.js';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const filterSensitiveData = (data: Record<string, unknown>): Record<string, unknown> => {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => {
+      if (isRecord(value)) {
+        return [key, filterSensitiveData(value)];
+      }
+
+      return [key, key === 'password' ? '******' : value];
+    })
+  );
+};
 
 const removeUndefinedKeys = (object: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
@@ -33,12 +48,12 @@ export class LogEntry {
   append(data: Readonly<LogPayload>) {
     this.payload = {
       ...this.payload,
-      ...removeUndefinedKeys(data),
+      ...filterSensitiveData(removeUndefinedKeys(data)),
     };
   }
 }
 
-export type LogPayload = Partial<LogContextPayload> & Record<string, unknown>;
+export type LogPayload = Partial<LogContextPayload>;
 
 export type LogContext = {
   createLog: (key: LogKey) => LogEntry;
@@ -93,11 +108,9 @@ export type WithLogContext<ContextT extends IRouterParamContext = IRouterParamCo
  * @see {@link LogKey} for all available log keys, and {@link LogResult} for result enums.
  * @see {@link LogContextPayload} for the basic type suggestion of log data.
  */
-export default function koaAuditLog<
-  StateT,
-  ContextT extends IRouterParamContext,
-  ResponseBodyT
->(): MiddlewareType<StateT, WithLogContext<ContextT>, ResponseBodyT> {
+export default function koaAuditLog<StateT, ContextT extends IRouterParamContext, ResponseBodyT>({
+  logs: { insertLog },
+}: Queries): MiddlewareType<StateT, WithLogContext<ContextT>, ResponseBodyT> {
   return async (ctx, next) => {
     const entries: LogEntry[] = [];
 

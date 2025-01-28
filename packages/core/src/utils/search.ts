@@ -1,10 +1,10 @@
 import { SearchJointMode, SearchMatchMode } from '@logto/schemas';
 import type { Nullable, Optional } from '@silverhand/essentials';
-import { conditionalString } from '@silverhand/essentials';
-import { sql } from 'slonik';
+import { yes, conditionalString, cond } from '@silverhand/essentials';
+import { sql } from '@silverhand/slonik';
 import { snakeCase } from 'snake-case';
 
-import { isTrue } from '#src/env-set/parameters.js';
+import { type SearchOptions } from '#src/database/utils.js';
 
 import assertThat from './assert-that.js';
 import { isEnum } from './type.js';
@@ -12,7 +12,7 @@ import { isEnum } from './type.js';
 const searchJointModes = Object.values(SearchJointMode);
 const searchMatchModes = Object.values(SearchMatchMode);
 
-export type SearchItem = {
+type SearchItem = {
   mode: SearchMatchMode;
   field?: string;
   values: string[];
@@ -83,7 +83,7 @@ const getSearchMetadata = (searchParameters: URLSearchParams, allowedFields?: st
   const matchMode = new Map<Optional<string>, SearchMatchMode>();
   const matchValues = new Map<Optional<string>, string[]>();
   const joint = getJointMode(searchParameters.get('joint') ?? searchParameters.get('jointMode'));
-  const isCaseSensitive = isTrue(searchParameters.get('isCaseSensitive') ?? 'false');
+  const isCaseSensitive = yes(searchParameters.get('isCaseSensitive') ?? 'false');
 
   // Parse the following values and return:
   // 1. Search modes per field, if available
@@ -118,12 +118,10 @@ const getSearchMetadata = (searchParameters: URLSearchParams, allowedFields?: st
   return { joint, matchMode, matchValues, isCaseSensitive };
 };
 
-/* eslint-disable unicorn/prevent-abbreviations */
 export const parseSearchParamsForSearch = (
   searchParams: URLSearchParams,
   allowedFields?: string[]
 ): Search => {
-  /* eslint-enable unicorn/prevent-abbreviations */
   const { matchMode, matchValues, ...rest } = getSearchMetadata(searchParams, allowedFields);
 
   // Validate and generate result
@@ -159,29 +157,58 @@ export const parseSearchParamsForSearch = (
 
 const getJointModeSql = (mode: SearchJointMode) => {
   switch (mode) {
-    case SearchJointMode.And:
+    case SearchJointMode.And: {
       return sql` and `;
-    case SearchJointMode.Or:
+    }
+
+    case SearchJointMode.Or: {
       return sql` or `;
+    }
   }
 };
 
 const getMatchModeOperator = (match: SearchMatchMode, isCaseSensitive: boolean) => {
   switch (match) {
-    case SearchMatchMode.Exact:
+    case SearchMatchMode.Exact: {
       return sql`=`;
-    case SearchMatchMode.Like:
+    }
+
+    case SearchMatchMode.Like: {
       return isCaseSensitive ? sql`~~` : sql`~~*`;
-    case SearchMatchMode.SimilarTo:
+    }
+
+    case SearchMatchMode.SimilarTo: {
       assertThat(
         isCaseSensitive,
         new TypeError('Cannot use case-insensitive match for `similar to`.')
       );
 
       return sql`similar to`;
-    case SearchMatchMode.Posix:
+    }
+
+    case SearchMatchMode.Posix: {
       return isCaseSensitive ? sql`~` : sql`~*`;
+    }
   }
+};
+
+const validateAndBuildValueExpression = (
+  rawValues: string[],
+  field: string,
+  shouldLowercase: boolean
+) => {
+  const values = shouldLowercase ? rawValues.map((rawValue) => rawValue.toLowerCase()) : rawValues;
+
+  // Type check for the first value
+  assertThat(
+    values[0] && values.every(Boolean),
+    new TypeError(`Empty value found${conditionalString(field && ` for field ${field}`)}.`)
+  );
+
+  const valueExpression =
+    values.length === 1 ? sql`${values[0]}` : sql`any(${sql.array(values, 'varchar')})`;
+
+  return valueExpression;
 };
 
 /**
@@ -190,15 +217,14 @@ const getMatchModeOperator = (match: SearchMatchMode, isCaseSensitive: boolean) 
  *
  * @param search The search config object.
  * @param searchFields Allowed and default search fields (columns).
- * @param isCaseSensitive Should perform case sensitive search or not.
  * @returns The SQL token that includes the all condition checks.
  * @throws TypeError error if fields in `search` do not match the `searchFields`, or invalid condition found (e.g. the value is empty).
  */
-export const buildConditionsFromSearch = (search: Search, searchFields: string[]) => {
+export const buildConditionsFromSearch = (search: Search, searchFields: readonly string[]) => {
   assertThat(searchFields.length > 0, new TypeError('No search field found.'));
 
   const { matches, joint, isCaseSensitive } = search;
-  const conditions = matches.map(({ mode, field: rawField, values: rawValues }) => {
+  const conditions = matches.map(({ mode, field: rawField, values }) => {
     const field = rawField && snakeCase(rawField);
 
     if (field && !searchFields.includes(field)) {
@@ -209,23 +235,19 @@ export const buildConditionsFromSearch = (search: Search, searchFields: string[]
 
     const shouldLowercase = !isCaseSensitive && mode === SearchMatchMode.Exact;
     const fields = field ? [field] : searchFields;
-    const values = shouldLowercase ? rawValues.map((value) => value.toLowerCase()) : rawValues;
 
-    // Type check for the first value
-    assertThat(
-      values[0] && values.every(Boolean),
-      new TypeError(`Empty value found${conditionalString(field && ` for field ${field}`)}.`)
-    );
-
-    const valueExpression =
-      values.length === 1 ? sql`${values[0]}` : sql`any(${sql.array(values, 'varchar')})`;
+    const getValueExpressionFor = (fieldName: string, shouldLowercase: boolean) =>
+      validateAndBuildValueExpression(values, fieldName, shouldLowercase);
 
     return sql`(${sql.join(
       fields.map(
         (field) =>
           sql`${
             shouldLowercase ? sql`lower(${sql.identifier([field])})` : sql.identifier([field])
-          } ${getMatchModeOperator(mode, isCaseSensitive)} ${valueExpression}`
+          } ${getMatchModeOperator(mode, isCaseSensitive)} ${getValueExpressionFor(
+            field,
+            shouldLowercase
+          )}`
       ),
       sql` or `
     )})`;
@@ -236,4 +258,28 @@ export const buildConditionsFromSearch = (search: Search, searchFields: string[]
   }
 
   return sql.join(conditions, getJointModeSql(joint));
+};
+
+/**
+ * Parse the search query from the request query string and build the search options
+ * for certain search fields.
+ *
+ * @param searchFields Search fields to be included in the search options.
+ * @param guardedQuery The guarded query key-value object.
+ * @returns The search options object, or `undefined` if no search query is found.
+ */
+export const parseSearchOptions = <Key extends string>(
+  searchFields: readonly Key[],
+  guardedQuery: {
+    q?: string;
+  }
+): Optional<SearchOptions<Key>> => {
+  const { q } = guardedQuery;
+  return cond(
+    q &&
+      searchFields.length > 0 && {
+        fields: searchFields,
+        keyword: q,
+      }
+  );
 };

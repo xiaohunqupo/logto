@@ -1,13 +1,13 @@
-import { formatNumberWithComma } from '@/utilities/number';
+import { formatNumberWithComma } from '@/utils/number';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  label?: string;
-  payload?: Array<{ payload: { count: number; date: string } }>;
+  readonly label?: string;
+  readonly payload?: Array<{ payload: { count: number; date: string } }>;
 };
 
-const ChartTooltip = ({ label, payload }: Props) => {
+function ChartTooltip({ label, payload }: Props) {
   if (!label || !payload?.[0]) {
     return null;
   }
@@ -18,6 +18,6 @@ const ChartTooltip = ({ label, payload }: Props) => {
       <div className={styles.label}>{label}</div>
     </div>
   );
-};
+}
 
 export default ChartTooltip;

@@ -1,4 +1,5 @@
 const dashboard = {
+  page_title: 'Painel',
   title: 'Painel',
   description: 'Obtenha uma visão geral sobre o desempenho da sua aplicação',
   total_users: 'Utilizadores totais',
@@ -19,4 +20,4 @@ const dashboard = {
     'O número de utilizadores únicos que efetuaram login nas suas aplicações nos últimos 30 dias',
 };
 
-export default dashboard;
+export default Object.freeze(dashboard);

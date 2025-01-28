@@ -1,9 +1,11 @@
-import { ConnectorPlatform } from '@logto/connector-kit';
+import type { ConnectorFactory } from '@logto/cli/lib/connector/index.js';
+import type router from '@logto/cloud/routes';
+import { ConnectorPlatform, DemoConnector } from '@logto/connector-kit';
 import type { Connector } from '@logto/schemas';
 import { ConnectorType } from '@logto/schemas';
 import { any } from 'zod';
 
-import type { LogtoConnector, ConnectorFactory } from '#src/connectors/types.js';
+import type { LogtoConnector } from '#src/utils/connectors/types.js';
 
 import {
   mockConnector0,
@@ -36,6 +38,7 @@ export {
 const { jest } = import.meta;
 
 export const mockConnector: Connector = {
+  tenantId: 'fake_tenant',
   id: 'id',
   config: {},
   createdAt: 1_234_567_890_123,
@@ -52,10 +55,11 @@ export const mockLogtoConnector = {
   configGuard: any(),
 };
 
-export const mockConnectorFactory: ConnectorFactory = {
+export const mockConnectorFactory: ConnectorFactory<typeof router> = {
   metadata: mockMetadata,
   type: ConnectorType.Social,
   path: 'random_path',
+  configGuard: any(),
   createConnector: jest.fn(),
 };
 
@@ -208,10 +212,18 @@ export const mockGoogleConnector: LogtoConnector = {
   dbEntry: {
     ...mockConnector,
     id: 'google',
+    config: {
+      clientId: 'fake_client_id',
+      clientSecret: 'fake_client_secret',
+      oneTap: {
+        isEnabled: true,
+        autoSelect: true,
+      },
+    },
   },
   metadata: {
     ...mockMetadata,
-    id: 'google',
+    id: 'google-universal',
     target: 'google',
     platform: ConnectorPlatform.Web,
   },
@@ -219,15 +231,20 @@ export const mockGoogleConnector: LogtoConnector = {
   ...mockLogtoConnector,
 };
 
-export const mockLogtoConnectors = [
-  mockAliyunDmConnector,
-  mockAliyunSmsConnector,
-  mockFacebookConnector,
-  mockGithubConnector,
-  mockGoogleConnector,
-  mockWechatConnector,
-  mockWechatNativeConnector,
-];
+export const mockDemoSocialConnector: LogtoConnector = {
+  dbEntry: {
+    ...mockConnector,
+    id: 'demo-social',
+  },
+  metadata: {
+    ...mockMetadata,
+    id: DemoConnector.Social,
+    target: 'github',
+    platform: null,
+  },
+  type: ConnectorType.Social,
+  ...mockLogtoConnector,
+};
 
 export const socialTarget01 = 'socialTarget-id01';
 export const socialTarget02 = 'socialTarget-id02';
@@ -235,6 +252,7 @@ export const socialTarget02 = 'socialTarget-id02';
 export const mockSocialConnectors: LogtoConnector[] = [
   {
     dbEntry: {
+      tenantId: 'fake_tenant',
       id: 'id0',
       config: {},
       createdAt: 1_234_567_890_123,
@@ -251,6 +269,7 @@ export const mockSocialConnectors: LogtoConnector[] = [
   },
   {
     dbEntry: {
+      tenantId: 'fake_tenant',
       id: 'id1',
       config: {},
       createdAt: 1_234_567_890_123,

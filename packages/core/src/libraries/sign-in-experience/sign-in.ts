@@ -1,9 +1,9 @@
 import type { SignIn, SignUp } from '@logto/schemas';
 import { ConnectorType, SignInIdentifier } from '@logto/schemas';
 
-import type { LogtoConnector } from '#src/connectors/types.js';
 import RequestError from '#src/errors/RequestError/index.js';
 import assertThat from '#src/utils/assert-that.js';
+import type { LogtoConnector } from '#src/utils/connectors/types.js';
 
 export const validateSignIn = (
   signIn: SignIn,
@@ -27,7 +27,8 @@ export const validateSignIn = (
 
   if (
     signIn.methods.some(
-      ({ identifier, verificationCode }) => verificationCode && identifier === SignInIdentifier.Sms
+      ({ identifier, verificationCode }) =>
+        verificationCode && identifier === SignInIdentifier.Phone
     )
   ) {
     assertThat(
@@ -65,9 +66,9 @@ export const validateSignIn = (
       );
     }
 
-    if (identifier === SignInIdentifier.Sms) {
+    if (identifier === SignInIdentifier.Phone) {
       assertThat(
-        signIn.methods.some(({ identifier }) => identifier === SignInIdentifier.Sms),
+        signIn.methods.some(({ identifier }) => identifier === SignInIdentifier.Phone),
         new RequestError({
           code: 'sign_in_experiences.miss_sign_up_identifier_in_sign_in',
         })

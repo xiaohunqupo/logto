@@ -9,10 +9,6 @@ const { mockEsmWithActual } = createMockUtils(jest);
 
 const enabledConnectors = [mockAliyunDmConnector, mockAliyunSmsConnector];
 
-await mockEsmWithActual('#src/libraries/session.js', () => ({
-  getApplicationIdFromInteraction: jest.fn(),
-}));
-
 const { validateSignUp } = await import('./sign-up.js');
 
 describe('validate sign-up', () => {
@@ -33,7 +29,7 @@ describe('validate sign-up', () => {
         validateSignUp(
           {
             ...mockSignUp,
-            identifiers: [SignInIdentifier.Email, SignInIdentifier.Sms],
+            identifiers: [SignInIdentifier.Email, SignInIdentifier.Phone],
           },
           []
         );
@@ -47,7 +43,7 @@ describe('validate sign-up', () => {
 
     test('should throw when there is no sms connector and identifier is phone', async () => {
       expect(() => {
-        validateSignUp({ ...mockSignUp, identifiers: [SignInIdentifier.Sms] }, []);
+        validateSignUp({ ...mockSignUp, identifiers: [SignInIdentifier.Phone] }, []);
       }).toMatchError(
         new RequestError({
           code: 'sign_in_experiences.enabled_connector_not_found',
@@ -62,14 +58,14 @@ describe('validate sign-up', () => {
           {
             ...mockSignUp,
             verify: true,
-            identifiers: [SignInIdentifier.Email, SignInIdentifier.Sms],
+            identifiers: [SignInIdentifier.Email, SignInIdentifier.Phone],
           },
           [mockAliyunSmsConnector]
         );
       }).toMatchError(
         new RequestError({
           code: 'sign_in_experiences.enabled_connector_not_found',
-          type: ConnectorType.Sms,
+          type: ConnectorType.Email,
         })
       );
     });
@@ -120,7 +116,7 @@ describe('validate sign-up', () => {
         validateSignUp(
           {
             ...mockSignUp,
-            identifiers: [SignInIdentifier.Email, SignInIdentifier.Sms],
+            identifiers: [SignInIdentifier.Email, SignInIdentifier.Phone],
             verify: false,
           },
           enabledConnectors

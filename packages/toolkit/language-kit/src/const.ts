@@ -1,7 +1,9 @@
 export const languages = Object.freeze({
   'af-ZA': 'Afrikaans',
   'am-ET': 'አማርኛ',
-  'ar-AR': 'العربية',
+  ar: 'العربية',
+  /** @deprecated Use 'ar' instead. */
+  'ar-AR': 'العربية (مهجورة)',
   'as-IN': 'অসমীয়া',
   'az-AZ': 'Azərbaycan dili',
   'be-BY': 'Беларуская',
@@ -51,7 +53,7 @@ export const languages = Object.freeze({
   'ik-US': 'Iñupiatun',
   'is-IS': 'Íslenska',
   it: 'Italiano',
-  'it-IT': 'italiano (Italia)',
+  'it-IT': 'Italiano (Italia)',
   'iu-CA': 'Inuktitut',
   ja: '日本語',
   'ja-JP': '日本語',
@@ -87,7 +89,7 @@ export const languages = Object.freeze({
   'ps-AF': 'پښتو',
   pt: 'português',
   'pt-BR': 'Português (Brasil)',
-  'pt-PT': 'português (Portugal)',
+  'pt-PT': 'Português (Portugal)',
   'ro-RO': 'Română',
   ru: 'Русский',
   'ru-RU': 'Русский',

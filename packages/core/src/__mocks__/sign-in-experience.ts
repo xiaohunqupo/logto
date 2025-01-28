@@ -6,7 +6,7 @@ import type {
   SignUp,
   SignIn,
 } from '@logto/schemas';
-import { BrandingStyle, SignInMode, SignInIdentifier } from '@logto/schemas';
+import { SignInMode, SignInIdentifier, MfaPolicy, AgreeToTermsPolicy } from '@logto/schemas';
 
 export const mockColor: Color = {
   primaryColor: '#000',
@@ -15,12 +15,11 @@ export const mockColor: Color = {
 };
 
 export const mockBranding: Branding = {
-  style: BrandingStyle.Logo_Slogan,
   logoUrl: 'http://silverhand.png',
-  slogan: 'Silverhand.',
 };
 
 export const mockTermsOfUseUrl = 'http://silverhand.com/terms';
+export const mockPrivacyPolicyUrl = 'http://silverhand.com/privacy';
 
 export const mockLanguageInfo: LanguageInfo = {
   autoDetect: true,
@@ -45,6 +44,7 @@ export const mockSignIn = {
 };
 
 export const mockSignInExperience: SignInExperience = {
+  tenantId: 'fake_tenant',
   id: 'foo',
   color: {
     primaryColor: '#000',
@@ -52,11 +52,10 @@ export const mockSignInExperience: SignInExperience = {
     darkPrimaryColor: '#fff',
   },
   branding: {
-    style: BrandingStyle.Logo,
     logoUrl: 'http://logto.png',
-    slogan: 'logto',
   },
   termsOfUseUrl: mockTermsOfUseUrl,
+  privacyPolicyUrl: mockPrivacyPolicyUrl,
   languageInfo: {
     autoDetect: true,
     fallbackLanguage: 'en',
@@ -81,7 +80,7 @@ export const mockSignInExperience: SignInExperience = {
         isPasswordPrimary: true,
       },
       {
-        identifier: SignInIdentifier.Sms,
+        identifier: SignInIdentifier.Phone,
         password: true,
         verificationCode: true,
         isPasswordPrimary: true,
@@ -90,4 +89,18 @@ export const mockSignInExperience: SignInExperience = {
   },
   socialSignInConnectorTargets: ['github', 'facebook', 'wechat'],
   signInMode: SignInMode.SignInAndRegister,
+  customCss: null,
+  customContent: {},
+  agreeToTermsPolicy: AgreeToTermsPolicy.Automatic,
+  customUiAssets: null,
+  passwordPolicy: {},
+  mfa: {
+    policy: MfaPolicy.PromptAtSignInAndSignUp,
+    factors: [],
+  },
+  singleSignOnEnabled: true,
+  socialSignIn: {},
+  supportEmail: null,
+  supportWebsiteUrl: null,
+  unknownSessionRedirectUrl: null,
 };

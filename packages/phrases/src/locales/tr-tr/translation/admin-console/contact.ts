@@ -1,22 +1,27 @@
 const contact = {
-  title: 'Bizimle iletişime geçin',
+  title: 'Yardım alın',
   description:
-    'Geri bildirim sağlamak, yardım istemek ve düşüncelerinizi diğer geliştiricilerle paylaşmak için topluluğumuza katılın',
+    'Yardım istekleri veya ürün geribildirimleri için lütfen aşağıdaki yöntemlerle bizimle iletişime geçin.',
   discord: {
-    title: 'Discord kanalı',
-    description: 'Diğer geliştiricilerle sohbet etmek için herkese açık kanalımıza katılın',
+    title: 'Discord topluluğuna katıl',
+    description: 'Diğer geliştiricilerle bağlantı kurup çözümler bulun',
     button: 'Katıl',
   },
   github: {
-    title: 'GitHub',
-    description: "Bir issue oluşturun ve GitHub'da gönderin",
-    button: 'Aç',
+    title: 'GitHub üzerinden iletişim kurun',
+    description: "Bir sorun oluşturun ve GitHub'a gönderin",
+    button: 'Açık',
   },
   email: {
-    title: 'Eposta Gönder',
-    description: 'Daha fazla bilgi ve yardım için bize bir e-posta gönderin',
-    button: 'Gönder',
+    title: 'E-posta ile destek iletişimi',
+    description: 'Daha fazla bilgi ve yardım için bize e-posta gönderin',
+    button: 'Send',
+  },
+  reserve: {
+    title: 'Logto ekibiyle zaman ayırın',
+    description: 'Hızlı bir görüşme için oturum ayırın',
+    button: 'Programa al',
   },
 };
 
-export default contact;
+export default Object.freeze(contact);

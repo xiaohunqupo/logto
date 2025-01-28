@@ -1,18 +1,17 @@
 import type { GeneratedSchema, SchemaLike } from '@logto/schemas';
-import type { OmitAutoSetFields } from '@logto/shared';
+import { has } from '@silverhand/essentials';
+import type { CommonQueryMethods, IdentifierSqlToken } from '@silverhand/slonik';
+import { sql } from '@silverhand/slonik';
+
+import { InsertionError } from '#src/errors/SlonikError/index.js';
+import assertThat from '#src/utils/assert-that.js';
 import {
+  type OmitAutoSetFields,
   convertToIdentifiers,
   excludeAutoSetFields,
   convertToPrimitiveOrSql,
   conditionalSql,
-} from '@logto/shared';
-import { has } from '@silverhand/essentials';
-import type { IdentifierSqlToken } from 'slonik';
-import { sql } from 'slonik';
-
-import envSet from '#src/env-set/index.js';
-import { InsertionError } from '#src/errors/SlonikError/index.js';
-import assertThat from '#src/utils/assert-that.js';
+} from '#src/utils/sql.js';
 
 const setExcluded = (...fields: IdentifierSqlToken[]) =>
   sql.join(
@@ -20,10 +19,15 @@ const setExcluded = (...fields: IdentifierSqlToken[]) =>
     sql`, `
   );
 
-type OnConflict = {
-  fields: IdentifierSqlToken[];
-  setExcludedFields: IdentifierSqlToken[];
-};
+type OnConflict =
+  | {
+      fields: IdentifierSqlToken[];
+      setExcludedFields: IdentifierSqlToken[];
+      ignore?: false;
+    }
+  | {
+      ignore: true;
+    };
 
 type InsertIntoConfigReturning = {
   returning: true;
@@ -36,54 +40,68 @@ type InsertIntoConfig = {
 };
 
 type BuildInsertInto = {
-  <Schema extends SchemaLike, ReturnType extends SchemaLike>(
-    { fieldKeys, ...rest }: GeneratedSchema<Schema>,
+  <
+    Key extends string,
+    CreateSchema extends Partial<SchemaLike<Key>>,
+    Schema extends SchemaLike<Key>,
+  >(
+    { fieldKeys, ...rest }: GeneratedSchema<Key, CreateSchema, Schema>,
     config: InsertIntoConfigReturning
-  ): (data: OmitAutoSetFields<Schema>) => Promise<ReturnType>;
-  <Schema extends SchemaLike>(
-    { fieldKeys, ...rest }: GeneratedSchema<Schema>,
+  ): (data: OmitAutoSetFields<CreateSchema>) => Promise<Schema>;
+  <
+    Key extends string,
+    CreateSchema extends Partial<SchemaLike<Key>>,
+    Schema extends SchemaLike<Key>,
+  >(
+    { fieldKeys, ...rest }: GeneratedSchema<Key, CreateSchema, Schema>,
     config?: InsertIntoConfig
-  ): (data: OmitAutoSetFields<Schema>) => Promise<void>;
+  ): (data: OmitAutoSetFields<CreateSchema>) => Promise<void>;
 };
 
-export const buildInsertInto: BuildInsertInto = <
-  Schema extends SchemaLike,
-  ReturnType extends SchemaLike
->(
-  schema: GeneratedSchema<Schema>,
-  config?: InsertIntoConfig | InsertIntoConfigReturning
-) => {
-  const { fieldKeys, ...rest } = schema;
-  const { table, fields } = convertToIdentifiers(rest);
-  const keys = excludeAutoSetFields(fieldKeys);
-  const returning = Boolean(config?.returning);
-  const onConflict = config?.onConflict;
+export const buildInsertIntoWithPool =
+  (pool: CommonQueryMethods): BuildInsertInto =>
+  <
+    Key extends string,
+    CreateSchema extends Partial<SchemaLike<Key>>,
+    Schema extends SchemaLike<Key>,
+  >(
+    schema: GeneratedSchema<Key, CreateSchema, Schema>,
+    config?: InsertIntoConfig | InsertIntoConfigReturning
+  ) => {
+    const { fieldKeys, ...rest } = schema;
+    const { table, fields } = convertToIdentifiers(rest);
+    const keys = excludeAutoSetFields(fieldKeys);
+    const returning = Boolean(config?.returning);
+    const onConflict = config?.onConflict;
 
-  return async (data: OmitAutoSetFields<Schema>): Promise<ReturnType | void> => {
-    const insertingKeys = keys.filter((key) => has(data, key));
-    const {
-      rows: [entry],
-    } = await envSet.pool.query<ReturnType>(sql`
-      insert into ${table} (${sql.join(
-      insertingKeys.map((key) => fields[key]),
-      sql`, `
-    )})
-      values (${sql.join(
-        insertingKeys.map((key) => convertToPrimitiveOrSql(key, data[key] ?? null)),
-        sql`, `
-      )})
-      ${conditionalSql(
-        onConflict,
-        ({ fields, setExcludedFields }) => sql`
-          on conflict (${sql.join(fields, sql`, `)}) do update
-          set ${setExcluded(...setExcludedFields)}
-        `
-      )}
-      ${conditionalSql(returning, () => sql`returning *`)}
-    `);
+    return async (data: OmitAutoSetFields<CreateSchema>): Promise<Schema | void> => {
+      const insertingKeys = keys.filter((key) => has(data, key));
+      const {
+        rows: [entry],
+      } = await pool.query<Schema>(sql`
+        insert into ${table} (${sql.join(
+          insertingKeys.map((key) => fields[key]),
+          sql`, `
+        )})
+        values (${sql.join(
+          insertingKeys.map((key) => convertToPrimitiveOrSql(key, data[key] ?? null)),
+          sql`, `
+        )})
+        ${conditionalSql(onConflict, (config) =>
+          config.ignore
+            ? sql`
+              on conflict do nothing
+            `
+            : sql`
+              on conflict (${sql.join(config.fields, sql`, `)}) do update
+              set ${setExcluded(...config.setExcludedFields)}
+            `
+        )}
+        ${conditionalSql(returning, () => sql`returning *`)}
+      `);
 
-    assertThat(!returning || entry, new InsertionError(schema, data));
+      assertThat(!returning || entry, new InsertionError<Key, CreateSchema, Schema>(schema, data));
 
-    return entry;
+      return entry;
+    };
   };
-};

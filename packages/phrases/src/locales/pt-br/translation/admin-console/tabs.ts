@@ -5,11 +5,18 @@ const tabs = {
   api_resources: 'Recursos da API',
   sign_in_experience: 'Experiência de login',
   connectors: 'Conectores',
+  enterprise_sso: 'Enterprise SSO',
+  webhooks: 'Webhooks',
+  organizations: 'Organizações',
   users: 'Usuários',
   audit_logs: 'Logs',
+  roles: 'Registros',
   docs: 'Documentação',
-  contact_us: 'Contate-nos',
-  settings: 'Configurações',
+  tenant_settings: 'Configurações',
+  mfa: 'Autenticação de multi-fator',
+  customize_jwt: 'JWT Personalizado',
+  signing_keys: 'Chaves de assinatura',
+  organization_template: 'Modelo de organização',
 };
 
-export default tabs;
+export default Object.freeze(tabs);

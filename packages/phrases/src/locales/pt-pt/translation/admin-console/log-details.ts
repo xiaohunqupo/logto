@@ -1,9 +1,10 @@
 const log_details = {
+  page_title: 'Detalhes do registo de auditoria',
   back_to_logs: 'Voltar aos registos de auditoria',
-  back_to_user: 'De volta a {{name}}',
+  back_to: 'Voltar para {{name}}',
   success: 'Sucesso',
   failed: 'Falha',
-  event_key: 'Event Key', // UNTRANSLATED
+  event_key: 'Chave do Evento',
   application: 'Aplicação',
   ip_address: 'Endereço IP',
   user: 'Utilizador',
@@ -14,4 +15,4 @@ const log_details = {
   raw_data: 'Dados não tratados',
 };
 
-export default log_details;
+export default Object.freeze(log_details);

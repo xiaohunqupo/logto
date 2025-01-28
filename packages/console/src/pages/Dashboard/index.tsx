@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import type { ChangeEventHandler } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Area,
@@ -14,14 +14,15 @@ import {
 import useSWR from 'swr';
 
 import AppError from '@/components/AppError';
-import Card from '@/components/Card';
-import TextInput from '@/components/TextInput';
+import PageMeta from '@/components/PageMeta';
+import Card from '@/ds-components/Card';
+import TextInput from '@/ds-components/TextInput';
 import type { RequestError } from '@/hooks/use-api';
 
 import Block from './components/Block';
 import ChartTooltip from './components/ChartTooltip';
 import Skeleton from './components/Skeleton';
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 import type { ActiveUsersResponse, NewUsersResponse, TotalUsersResponse } from './types';
 
 const tickStyle = {
@@ -35,18 +36,33 @@ const tickFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
 });
 
-const Dashboard = () => {
+function Dashboard() {
   const [date, setDate] = useState<string>(format(Date.now(), 'yyyy-MM-dd'));
   const { data: totalData, error: totalError } = useSWR<TotalUsersResponse, RequestError>(
-    '/api/dashboard/users/total'
+    'api/dashboard/users/total'
   );
   const { data: newData, error: newError } = useSWR<NewUsersResponse, RequestError>(
-    '/api/dashboard/users/new'
+    'api/dashboard/users/new'
   );
   const { data: activeData, error: activeError } = useSWR<ActiveUsersResponse, RequestError>(
-    `/api/dashboard/users/active?date=${date}`
+    `api/dashboard/users/active?date=${date}`
   );
-  const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+  const { t, i18n } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+  const isRtl = i18n.dir() === 'rtl';
+
+  const areaChartData = useMemo(() => {
+    const chartData = activeData?.dauCurve.map((item) => ({
+      ...item,
+      // Remove "year" for a compact label.
+      date: item.date.replace(/\d{4}-/, ''),
+    }));
+
+    if (isRtl) {
+      // eslint-disable-next-line @silverhand/fp/no-mutating-methods
+      return chartData?.slice().reverse();
+    }
+    return chartData;
+  }, [activeData?.dauCurve, isRtl]);
 
   // Pick an error as the page's error
   const error = totalError ?? newError ?? activeError;
@@ -58,6 +74,7 @@ const Dashboard = () => {
 
   return (
     <div className={styles.container}>
+      <PageMeta titleKey="dashboard.title" />
       <div className={styles.header}>
         <div className={styles.title}>{t('dashboard.title')}</div>
         <div className={styles.subtitle}>{t('dashboard.description')}</div>
@@ -98,15 +115,7 @@ const Dashboard = () => {
             </div>
             <div className={styles.curve}>
               <ResponsiveContainer>
-                <AreaChart
-                  data={activeData.dauCurve.map((item) => ({
-                    ...item,
-                    // Remove "year" for a compact label.
-                    date: item.date.replace(/\d{4}-/, ''),
-                  }))}
-                  width={1100}
-                  height={168}
-                >
+                <AreaChart data={areaChartData} width={1100} height={168}>
                   <CartesianGrid vertical={false} stroke="var(--color-divider)" />
                   <Area
                     type="monotone"
@@ -114,14 +123,16 @@ const Dashboard = () => {
                     stroke="var(--color-primary)"
                     strokeWidth={2}
                     fill="var(--color-hover-variant)"
+                    animationDuration={isRtl ? 0 : 1500}
                   />
                   <XAxis dataKey="date" tickLine={false} tick={tickStyle} />
                   <YAxis
                     width={35}
+                    orientation={isRtl ? 'right' : 'left'}
                     axisLine={false}
                     tickLine={false}
                     tick={tickStyle}
-                    tickFormatter={(tick) => tickFormatter.format(tick).toLowerCase()}
+                    tickFormatter={(tick) => tickFormatter.format(Number(tick)).toLowerCase()}
                   />
                   <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-primary' }} />
                 </AreaChart>
@@ -148,6 +159,6 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
+}
 
 export default Dashboard;

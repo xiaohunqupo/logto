@@ -8,18 +8,18 @@
 import type { ReactNode } from 'react';
 
 export type Props = {
-  children: ReactNode;
-  className?: string;
-  value: string;
-  label?: string;
+  readonly children: ReactNode;
+  readonly className?: string;
+  readonly value: string;
+  readonly label?: string;
 };
 
-const TabItem = ({ children, ...rest }: Props): JSX.Element => {
+function TabItem({ children, ...rest }: Props): JSX.Element {
   return (
     <div role="tabpanel" {...rest}>
       {children}
     </div>
   );
-};
+}
 
 export default TabItem;

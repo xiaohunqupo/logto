@@ -1,39 +1,55 @@
-import { AppearanceMode, ConnectorType } from '@logto/schemas';
+import { ServiceConnector } from '@logto/connector-kit';
+import { ConnectorType } from '@logto/schemas';
+import type { ConnectorFactoryResponse } from '@logto/schemas';
 import { conditional } from '@silverhand/essentials';
-import classNames from 'classnames';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import useSWR from 'swr';
 
-import Plus from '@/assets/images/plus.svg';
-import SocialConnectorEmptyDark from '@/assets/images/social-connector-empty-dark.svg';
-import SocialConnectorEmpty from '@/assets/images/social-connector-empty.svg';
-import Button from '@/components/Button';
-import CardTitle from '@/components/CardTitle';
-import TabNav, { TabNavItem } from '@/components/TabNav';
-import TableEmpty from '@/components/Table/TableEmpty';
-import TableError from '@/components/Table/TableError';
-import TableLoading from '@/components/Table/TableLoading';
+import Plus from '@/assets/icons/plus.svg?react';
+import SocialConnectorEmptyDark from '@/assets/images/social-connector-empty-dark.svg?react';
+import SocialConnectorEmpty from '@/assets/images/social-connector-empty.svg?react';
+import CreateConnectorForm from '@/components/CreateConnectorForm';
+import ListPage from '@/components/ListPage';
+import { defaultEmailConnectorGroup, defaultSmsConnectorGroup } from '@/consts';
 import { ConnectorsTabs } from '@/consts/page-tabs';
+import Button from '@/ds-components/Button';
+import TabNav, { TabNavItem } from '@/ds-components/TabNav';
+import TablePlaceholder from '@/ds-components/Table/TablePlaceholder';
+import type { RequestError } from '@/hooks/use-api';
+import useConnectorApi from '@/hooks/use-connector-api';
 import useConnectorGroups from '@/hooks/use-connector-groups';
-import { useTheme } from '@/hooks/use-theme';
-import * as resourcesStyles from '@/scss/resources.module.scss';
-import * as tableStyles from '@/scss/table.module.scss';
+import useDocumentationUrl from '@/hooks/use-documentation-url';
+import useTenantPathname from '@/hooks/use-tenant-pathname';
+import DemoConnectorNotice from '@/onboarding/components/DemoConnectorNotice';
 
-import ConnectorRow from './components/ConnectorRow';
-import ConnectorStatusField from './components/ConnectorStatusField';
-import CreateForm from './components/CreateForm';
-import SignInExperienceSetupNotice from './components/SignInExperienceSetupNotice';
-import * as styles from './index.module.scss';
+import ConnectorDeleteButton from './ConnectorDeleteButton';
+import ConnectorName from './ConnectorName';
+import ConnectorStatus from './ConnectorStatus';
+import ConnectorStatusField from './ConnectorStatusField';
+import ConnectorTypeColumn from './ConnectorTypeColumn';
+import Guide from './Guide';
+import SignInExperienceSetupNotice from './SignInExperienceSetupNotice';
+import styles from './index.module.scss';
 
 const basePathname = '/connectors';
 const passwordlessPathname = `${basePathname}/${ConnectorsTabs.Passwordless}`;
 const socialPathname = `${basePathname}/${ConnectorsTabs.Social}`;
 
-const buildCreatePathname = (connectorType: ConnectorType) => {
-  const pathname = connectorType === ConnectorType.Social ? socialPathname : passwordlessPathname;
+const buildTabPathname = (connectorType: ConnectorType) =>
+  connectorType === ConnectorType.Social ? socialPathname : passwordlessPathname;
 
-  return `${pathname}/create/${connectorType}`;
+const buildCreatePathname = (connectorType: ConnectorType) => {
+  const tabPath = buildTabPathname(connectorType);
+
+  return `${tabPath}/create/${connectorType}`;
+};
+
+const buildGuidePathname = (connectorType: ConnectorType, factoryId: string) => {
+  const tabPath = buildTabPathname(connectorType);
+
+  return `${tabPath}/guide/${factoryId}`;
 };
 
 const isConnectorType = (value: string): value is ConnectorType =>
@@ -42,137 +58,188 @@ const isConnectorType = (value: string): value is ConnectorType =>
 const parseToConnectorType = (value?: string): ConnectorType | undefined =>
   conditional(value && isConnectorType(value) && value);
 
-const Connectors = () => {
-  const { tab = ConnectorsTabs.Passwordless, createType } = useParams();
+function Connectors() {
+  const { tab = ConnectorsTabs.Passwordless, createType, factoryId } = useParams();
   const createConnectorType = parseToConnectorType(createType);
-  const navigate = useNavigate();
+  const { navigate } = useTenantPathname();
   const isSocial = tab === ConnectorsTabs.Social;
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
+  const { getDocumentationUrl } = useDocumentationUrl();
+  const { createConnector } = useConnectorApi();
   const { data, error, mutate } = useConnectorGroups();
-  const isLoading = !data && !error;
-  const theme = useTheme();
-  const isLightMode = theme === AppearanceMode.LightMode;
+  const { data: factories, error: factoriesError } = useSWR<
+    ConnectorFactoryResponse[],
+    RequestError
+  >('api/connector-factories');
 
-  const emailConnector = useMemo(() => {
-    const emailConnectorGroup = data?.find(({ type }) => type === ConnectorType.Email);
+  const isLoading = !data && !factories && !error && !factoriesError;
 
-    return emailConnectorGroup?.connectors[0];
+  const passwordlessConnectors = useMemo(() => {
+    const emailConnector =
+      data?.find(({ type }) => type === ConnectorType.Email) ?? defaultEmailConnectorGroup;
+
+    const smsConnector =
+      data?.find(({ type }) => type === ConnectorType.Sms) ?? defaultSmsConnectorGroup;
+
+    return [emailConnector, smsConnector];
   }, [data]);
 
-  const smsConnector = useMemo(() => {
-    const smsConnectorGroup = data?.find(({ type }) => type === ConnectorType.Sms);
+  const socialConnectors = useMemo(
+    () => data?.filter(({ type }) => type === ConnectorType.Social),
+    [data]
+  );
 
-    return smsConnectorGroup?.connectors[0];
-  }, [data]);
+  const connectors = isSocial ? socialConnectors : passwordlessConnectors;
 
-  const socialConnectorGroups = useMemo(() => {
-    if (!isSocial) {
-      return;
+  const hasDemoConnector = connectors?.some(({ isDemo }) => isDemo);
+
+  const connectorToShowInGuide = useMemo(() => {
+    if (factories && factoryId) {
+      return factories.find(({ id }) => id === factoryId);
     }
-
-    return data?.filter(({ type }) => type === ConnectorType.Social);
-  }, [data, isSocial]);
+  }, [factoryId, factories]);
 
   return (
-    <>
-      <div className={classNames(resourcesStyles.container, styles.container)}>
-        <div className={resourcesStyles.headline}>
-          <CardTitle title="connectors.title" subtitle="connectors.subtitle" />
-          {isSocial && (
-            <Button
-              title="connectors.create"
-              type="primary"
-              size="large"
-              icon={<Plus />}
-              onClick={() => {
-                navigate(buildCreatePathname(ConnectorType.Social));
+    <ListPage
+      className={styles.container}
+      title={{
+        title: 'connectors.title',
+        subtitle: 'connectors.subtitle',
+      }}
+      pageMeta={{ titleKey: 'connectors.page_title' }}
+      createButton={conditional(
+        isSocial && {
+          title: 'connectors.create',
+          onClick: () => {
+            navigate(buildCreatePathname(ConnectorType.Social));
+          },
+        }
+      )}
+      subHeader={
+        <>
+          <SignInExperienceSetupNotice />
+          <TabNav className={styles.tabs}>
+            <TabNavItem href={passwordlessPathname}>{t('connectors.tab_email_sms')}</TabNavItem>
+            <TabNavItem href={socialPathname}>{t('connectors.tab_social')}</TabNavItem>
+          </TabNav>
+          {hasDemoConnector && <DemoConnectorNotice />}
+        </>
+      }
+      table={{
+        rowIndexKey: 'id',
+        rowGroups: [{ key: 'connectors', data: connectors }],
+        columns: [
+          {
+            title: t('connectors.connector_name'),
+            dataIndex: 'name',
+            colSpan: 6,
+            render: (connectorGroup) => (
+              <ConnectorName connectorGroup={connectorGroup} isDemo={connectorGroup.isDemo} />
+            ),
+          },
+          {
+            title: t('connectors.connector_type'),
+            dataIndex: 'type',
+            colSpan: 5,
+            render: (connectorGroup) => <ConnectorTypeColumn connectorGroup={connectorGroup} />,
+          },
+          {
+            title: <ConnectorStatusField />,
+            dataIndex: 'status',
+            colSpan: 4,
+            render: (connectorGroup) => <ConnectorStatus connectorGroup={connectorGroup} />,
+          },
+          {
+            title: null,
+            dataIndex: 'delete',
+            colSpan: 1,
+            render: (connectorGroup) =>
+              connectorGroup.isDemo ? (
+                <ConnectorDeleteButton connectorGroup={connectorGroup} />
+              ) : null,
+          },
+        ],
+        isRowClickable: ({ connectors }) => Boolean(connectors[0]) && !connectors[0]?.isDemo,
+        rowClickHandler: ({ connectors }) => {
+          const firstConnector = connectors[0];
+
+          if (!firstConnector) {
+            return;
+          }
+
+          const { type, id } = firstConnector;
+
+          navigate(
+            `${type === ConnectorType.Social ? socialPathname : passwordlessPathname}/${id}`
+          );
+        },
+        isLoading,
+        errorMessage: error?.body?.message ?? error?.message,
+        placeholder: conditional(
+          isSocial && (
+            <TablePlaceholder
+              image={<SocialConnectorEmpty />}
+              imageDark={<SocialConnectorEmptyDark />}
+              title="connectors.placeholder_title"
+              description="connectors.placeholder_description"
+              learnMoreLink={{
+                href: getDocumentationUrl(
+                  '/docs/recipes/configure-connectors/configure-social-connector'
+                ),
+                targetBlank: 'noopener',
               }}
+              action={
+                <Button
+                  title="connectors.create"
+                  type="primary"
+                  size="large"
+                  icon={<Plus />}
+                  onClick={() => {
+                    navigate(buildCreatePathname(ConnectorType.Social));
+                  }}
+                />
+              }
             />
-          )}
-        </div>
-        <SignInExperienceSetupNotice />
-        <TabNav className={styles.tabs}>
-          <TabNavItem href={passwordlessPathname}>{t('connectors.tab_email_sms')}</TabNavItem>
-          <TabNavItem href={socialPathname}>{t('connectors.tab_social')}</TabNavItem>
-        </TabNav>
-        <div className={resourcesStyles.table}>
-          <div className={tableStyles.scrollable}>
-            <table className={classNames(!data && tableStyles.empty)}>
-              <colgroup>
-                <col className={styles.connectorName} />
-                <col />
-                <col />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>{t('connectors.connector_name')}</th>
-                  <th>{t('connectors.connector_type')}</th>
-                  <th>
-                    <ConnectorStatusField />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {!data && error && (
-                  <TableError
-                    columns={3}
-                    content={error.body?.message ?? error.message}
-                    onRetry={async () => mutate(undefined, true)}
-                  />
-                )}
-                {isLoading && <TableLoading columns={3} />}
-                {socialConnectorGroups?.length === 0 && (
-                  <TableEmpty
-                    columns={3}
-                    title={t('connectors.type.social')}
-                    content={t('connectors.social_connector_eg')}
-                    image={isLightMode ? <SocialConnectorEmpty /> : <SocialConnectorEmptyDark />}
-                  >
-                    <Button
-                      title="connectors.create"
-                      type="outline"
-                      onClick={() => {
-                        navigate(buildCreatePathname(ConnectorType.Social));
-                      }}
-                    />
-                  </TableEmpty>
-                )}
-                {!isLoading && !isSocial && (
-                  <ConnectorRow
-                    connectors={smsConnector ? [smsConnector] : []}
-                    type={ConnectorType.Sms}
-                    onClickSetup={() => {
-                      navigate(buildCreatePathname(ConnectorType.Sms));
-                    }}
-                  />
-                )}
-                {!isLoading && !isSocial && (
-                  <ConnectorRow
-                    connectors={emailConnector ? [emailConnector] : []}
-                    type={ConnectorType.Email}
-                    onClickSetup={() => {
-                      navigate(buildCreatePathname(ConnectorType.Email));
-                    }}
-                  />
-                )}
-                {socialConnectorGroups?.map(({ connectors, id }) => (
-                  <ConnectorRow key={id} connectors={connectors} type={ConnectorType.Social} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <CreateForm
-        isOpen={Boolean(createConnectorType)}
-        type={createConnectorType}
-        onClose={() => {
-          navigate(`${basePathname}/${tab}`);
-          void mutate();
-        }}
-      />
-    </>
+          )
+        ),
+        onRetry: async () => mutate(undefined, true),
+      }}
+      widgets={
+        <>
+          <CreateConnectorForm
+            isOpen={Boolean(createConnectorType)}
+            type={createConnectorType}
+            onClose={async (id) => {
+              if (createConnectorType && id) {
+                /**
+                 * Note:
+                 * The "Email Service Connector" is a built-in connector that can be directly created without the need for setup in the guide.
+                 */
+                if (id === ServiceConnector.Email) {
+                  const created = await createConnector({ connectorId: id });
+                  navigate(`/connectors/${ConnectorsTabs.Passwordless}/${created.id}`, {
+                    replace: true,
+                  });
+                  return;
+                }
+
+                navigate(buildGuidePathname(createConnectorType, id), { replace: true });
+
+                return;
+              }
+              navigate(`${basePathname}/${tab}`);
+            }}
+          />
+          <Guide
+            connector={connectorToShowInGuide}
+            onClose={() => {
+              navigate(`${basePathname}/${tab}`);
+            }}
+          />
+        </>
+      }
+    />
   );
-};
+}
 
 export default Connectors;

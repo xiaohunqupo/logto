@@ -1,6 +1,7 @@
 const logs = {
-  title: 'Audit Logs',
-  subtitle: 'View log data of authentication events made by your admin and users',
+  page_title: 'Audit logs',
+  title: 'Audit logs',
+  subtitle: 'View log data of authentication events made by your users',
   event: 'Event',
   user: 'User',
   application: 'Application',
@@ -8,4 +9,4 @@ const logs = {
   filter_by: 'Filter by',
 };
 
-export default logs;
+export default Object.freeze(logs);

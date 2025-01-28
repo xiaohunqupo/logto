@@ -1,4 +1,5 @@
 const dashboard = {
+  page_title: 'Dashboard',
   title: 'Dashboard',
   description: 'Verschaffe dir einen Überblick über die Leistung deiner App',
   total_users: 'Gesamtzahl der Benutzer',
@@ -19,4 +20,4 @@ const dashboard = {
     'Die Anzahl der einzelnen Benutzer, die in den letzten 30 Tagen Token in deinen Anwendungen ausgetauscht haben',
 };
 
-export default dashboard;
+export default Object.freeze(dashboard);

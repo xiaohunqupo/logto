@@ -1,27 +1,29 @@
 import classNames from 'classnames';
 
-import Tick from '@/assets/images/tick.svg';
+import Tick from '@/assets/icons/tick.svg?react';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  className?: string;
-  index: number;
-  isActive?: boolean;
-  isComplete?: boolean;
+  readonly className?: string;
+  readonly index: number;
+  readonly isActive?: boolean;
+  readonly isComplete?: boolean;
 };
 
-const Index = ({ className, index, isActive, isComplete }: Props) => (
-  <div
-    className={classNames(
-      styles.container,
-      className,
-      isActive && styles.active,
-      isComplete && styles.completed
-    )}
-  >
-    {isComplete ? <Tick /> : index}
-  </div>
-);
+function Index({ className, index, isActive, isComplete }: Props) {
+  return (
+    <div
+      className={classNames(
+        styles.container,
+        className,
+        isActive && styles.active,
+        isComplete && styles.completed
+      )}
+    >
+      {isComplete ? <Tick /> : index}
+    </div>
+  );
+}
 
 export default Index;

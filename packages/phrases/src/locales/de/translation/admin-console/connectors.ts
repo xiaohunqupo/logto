@@ -1,67 +1,87 @@
 const connectors = {
+  page_title: 'Connectoren',
   title: 'Connectoren',
-  subtitle: 'Richte Connectoren ein um passwortlose und Social Anmeldung zu aktivieren',
-  create: 'Social Connector erstellen',
-  config_sie_notice: 'You’ve set up connectors. Make sure to configure it in <a>{{link}}</a>.', // UNTRANSLATED
-  config_sie_link_text: 'sign in experience', // UNTRANSLATED
-  tab_email_sms: 'E-Mail und SMS Connectoren',
-  tab_social: 'Social Connectoren',
-  connector_name: 'Connectorname',
+  subtitle: 'Richte Connectoren ein, um passwortlose und Social-Anmeldung zu aktivieren',
+  create: 'Social-Connector erstellen',
+  config_sie_notice:
+    'Sie haben Connectoren eingerichtet. Stellen Sie sicher, dass Sie ihn in <a>{{link}}</a> konfigurieren.',
+  config_sie_link_text: 'Anmeldeerfahrung',
+  tab_email_sms: 'E-Mail und SMS-Connectoren',
+  tab_social: 'Social-Connectoren',
+  connector_name: 'Connector-Name',
+  demo_tip:
+    'Die maximale Anzahl von Nachrichten für diesen Demo-Connector ist auf 100 begrenzt und wird nicht für den Einsatz in einer Produktionsumgebung empfohlen.',
+  social_demo_tip:
+    'Der Demo-Connector ist ausschließlich für Demonstrationszwecke konzipiert und wird nicht für den Einsatz in einer Produktionsumgebung empfohlen.',
   connector_type: 'Typ',
   connector_status: 'Anmeldeoberfläche',
   connector_status_in_use: 'In Benutzung',
   connector_status_not_in_use: 'Nicht in Benutzung',
   not_in_use_tip: {
     content:
-      'Not in use means your sign in experience hasn’t used this sign in method. <a>{{link}}</a> to add this sign in method. ', // UNTRANSLATED
-    go_to_sie: 'Go to sign in experience', // UNTRANSLATED
+      'Nicht in Benutzung bedeutet, dass Ihre Anmeldeerfahrung diese Anmeldeoption nicht verwendet hat. <a>{{link}}</a>, um diese Anmeldeoption hinzuzufügen.',
+    go_to_sie: 'Zur Anmeldeerfahrung gehen',
   },
-  social_connector_eg: 'z.B. Google, Facebook, Github',
+  placeholder_title: 'Social-Connector',
+  placeholder_description:
+    'Logto hat viele weit verbreitete Social-Sign-In-Connectoren bereitgestellt. Inzwischen können Sie mit Standardprotokollen Ihre eigenen erstellen.',
   save_and_done: 'Speichern und fertigstellen',
   type: {
-    email: 'E-Mail Connector',
-    sms: 'SMS Connector',
-    social: 'Social Connector',
+    email: 'E-Mail-Connector',
+    sms: 'SMS-Connector',
+    social: 'Social-Connector',
   },
   setup_title: {
-    email: 'E-Mail Connector einrichten',
-    sms: 'SMS Connector einrichten',
-    social: 'Social Connector erstellen',
+    email: 'E-Mail-Connector einrichten',
+    sms: 'SMS-Connector einrichten',
+    social: 'Social-Connector erstellen',
   },
   guide: {
     subtitle: 'Eine Schritt-für-Schritt-Anleitung zur Konfiguration deines Connectors',
-    connector_setting: 'Connector setting', // UNTRANSLATED
-    name: 'Connector name', // UNTRANSLATED
+    general_setting: 'Allgemeine Einstellungen',
+    parameter_configuration: 'Parameterkonfiguration',
+    test_connection: 'Verbindungstest',
+    name: 'Name für Social-Sign-In-Button',
+    name_placeholder: 'Geben Sie den Namen für den Social-Sign-In-Button ein',
     name_tip:
-      'The name of the connector button will be displayed as "Continue with {{social_connector}}." Be mindful of the length of the naming in case it gets too long.', // UNTRANSLATED
-    logo: 'Logo image URL', // UNTRANSLATED
-    logo_placeholder: 'https://your.cdn.domain/logo.png', // UNTRANSLATED
-    logo_tip:
-      'Logo image will show on the connector. Get a publicly accessible image link and insert the link here.', // UNTRANSLATED
-    logo_dark: 'Connector logo URL for dark mode', // UNTRANSLATED
-    logo_dark_placeholder: 'https://your.cdn.domain/logo.png', // UNTRANSLATED
-    logo_dark_tip:
-      'Set your connector’s logo for dark mode after enabling it in the Sign-in Experience of Admin Console.', // UNTRANSLATED
-    logo_dark_collapse: 'Collapse', // UNTRANSLATED
-    logo_dark_show: 'Show logo setting for dark mode', // UNTRANSLATED
-    target: 'Connector identity target', // UNTRANSLATED
+      'Der Name des Connector-Buttons wird als "Weiter mit {{name}}" angezeigt. Achten Sie darauf, dass der Name nicht zu lang wird.',
+    connector_logo: 'Connector-Logo',
+    connector_logo_tip: 'Das Logo wird auf dem Connector-Anmeldebutton angezeigt.',
+    target: 'Identity Provider Name',
+    target_placeholder: 'Geben Sie den Namen des Connector Identity Providers ein',
     target_tip:
-      'If the connector is successfully built, the connector “Target” cannot be modified.', // UNTRANSLATED
+      'Der Wert von "IdP-Name" kann eine eindeutige Kennung sein, um Ihre Social-Identitäten zu unterscheiden.',
+    target_tip_standard:
+      'Der Wert von "IdP-Name" kann eine eindeutige Kennung sein, um Ihre Social-Identitäten zu unterscheiden. Diese Einstellung kann nach der Erstellung des Connectors nicht mehr geändert werden.',
     target_tooltip:
-      '"Target" in Logto social connectors refers to the "source" of your social identities. In Logto design, we do not accept the same "target" of a specific platform to avoid conflicts. You should be very careful before you add a connector since you CAN NOT change its value once you create it. <a>Learn more.</a>', // UNTRANSLATED
-    config: 'Enter your config JSON', // UNTRANSLATED
-    sync_profile: 'Sync profile information', // UNTRANSLATED
-    sync_profile_only_at_sign_up: 'Only sync at sign-up', // UNTRANSLATED
-    sync_profile_each_sign_in: 'Always do a sync at each sign-in', // UNTRANSLATED
+      '„Target“ in Logto-Social-Connectors bezieht sich auf die „Quelle“ Ihrer Social-Identitäten. Im Logto-Design akzeptieren wir nicht dasselbe „Target“ einer bestimmten Plattform, um Konflikte zu vermeiden. Sie sollten sehr vorsichtig sein, bevor Sie einen Connector hinzufügen, da Sie seinen Wert NICHT ändern können, sobald Sie ihn erstellt haben. <a>Erfahren Sie mehr</a>',
+    target_conflict:
+      'Der eingegebene IdP-Name stimmt mit dem vorhandenen <span>Namen</span> überein. Die Verwendung desselben IdP-Namens kann ein unerwartetes Anmeldeverhalten verursachen, bei dem Benutzer über zwei verschiedene Connectoren auf dasselbe Konto zugreifen können.',
+    target_conflict_line2:
+      'Wenn Sie den aktuellen Connector durch denselben Identity Provider ersetzen und früheren Benutzern ermöglichen möchten, sich ohne erneute Registrierung anzumelden, löschen Sie bitte den <span>Namen</span>-Connector und erstellen Sie einen neuen mit dem gleichen "IdP-Namen".',
+    target_conflict_line3:
+      'Wenn Sie sich mit einem anderen Identity Provider verbinden möchten, ändern Sie bitte den "IdP-Name" und fahren Sie fort.',
+    config: 'Geben Sie Ihre Konfigurations-JSON ein',
+    sync_profile: 'Profilinformationen synchronisieren',
+    sync_profile_only_at_sign_up: 'Nur bei der Anmeldung synchronisieren',
+    sync_profile_each_sign_in: 'Bei jeder Anmeldung immer synchronisieren',
+    sync_profile_tip:
+      'Synchronisieren Sie das Grundprofil vom Social-Provider, z. B. die Namen der Benutzer und ihre Avatare.',
+    callback_uri: 'Callback-URI',
+    callback_uri_description:
+      'Auch als Redirect-URI bezeichnet, ist die URI in Logto, zu der Benutzer nach der Social-Autorisierung zurückgesendet werden. Kopieren und fügen Sie sie in die Konfigurationsseite des Social Providers ein.',
+    acs_url: 'Assertion Consumer Service URL',
   },
   platform: {
     universal: 'Universal',
     web: 'Web',
     native: 'Nativ',
   },
-  add_multi_platform: ' unterstützt mehrere Plattformen, wähle eine Plattform aus, um fortzufahren',
-  drawer_title: 'Connector Anleitung',
+  add_multi_platform: ' unterstützt mehrere Plattformen. Wähle eine Plattform aus, um fortzufahren',
+  drawer_title: 'Connector-Anleitung',
   drawer_subtitle: 'Folge den Anweisungen, um deinen Connector zu integrieren',
+  unknown: 'Unbekannter Connector',
+  standard_connectors: 'Standard-Connectoren',
 };
 
-export default connectors;
+export default Object.freeze(connectors);

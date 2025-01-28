@@ -1,6 +1,8 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
-import { UsersPasswordEncryptionMethod } from '@logto/schemas';
+import { type PasswordPolicyChecker } from '@logto/core-kit';
+import { type User, UsersPasswordEncryptionMethod } from '@logto/schemas';
+import { condObject } from '@silverhand/essentials';
 import { argon2i } from 'hash-wasm';
 
 import RequestError from '#src/errors/RequestError/index.js';
@@ -11,7 +13,6 @@ export const encryptPassword = async (
   method: UsersPasswordEncryptionMethod
 ): Promise<string> => {
   assertThat(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     method === UsersPasswordEncryptionMethod.Argon2i,
     new RequestError({ code: 'password.unsupported_encryption_method', method })
   );
@@ -25,4 +26,20 @@ export const encryptPassword = async (
     hashLength: 32,
     outputType: 'encoded',
   });
+};
+
+export const checkPasswordPolicyForUser = async (
+  policyChecker: PasswordPolicyChecker,
+  password: string,
+  user: User
+) => {
+  return policyChecker.check(
+    password,
+    condObject({
+      email: user.primaryEmail,
+      username: user.username,
+      phoneNumber: user.primaryPhone,
+      name: user.name,
+    })
+  );
 };

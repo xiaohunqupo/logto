@@ -1,87 +1,70 @@
 import type { Resource } from '@logto/schemas';
-import { AppearanceMode, managementResource } from '@logto/schemas';
+import { isManagementApi, Theme } from '@logto/schemas';
+import { conditionalArray } from '@silverhand/essentials';
+import classNames from 'classnames';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Trans, useTranslation } from 'react-i18next';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 
-import ApiResourceDark from '@/assets/images/api-resource-dark.svg';
-import ApiResource from '@/assets/images/api-resource.svg';
-import Back from '@/assets/images/back.svg';
-import Delete from '@/assets/images/delete.svg';
-import More from '@/assets/images/more.svg';
-import ActionMenu, { ActionMenuItem } from '@/components/ActionMenu';
-import Card from '@/components/Card';
-import CopyToClipboard from '@/components/CopyToClipboard';
-import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import DetailsForm from '@/components/DetailsForm';
-import DetailsSkeleton from '@/components/DetailsSkeleton';
-import FormCard from '@/components/FormCard';
-import FormField from '@/components/FormField';
-import TabNav, { TabNavItem } from '@/components/TabNav';
-import TextInput from '@/components/TextInput';
-import TextLink from '@/components/TextLink';
-import UnsavedChangesAlertModal from '@/components/UnsavedChangesAlertModal';
+import ApiResourceDark from '@/assets/icons/api-resource-dark.svg?react';
+import ApiResource from '@/assets/icons/api-resource.svg?react';
+import Delete from '@/assets/icons/delete.svg?react';
+import File from '@/assets/icons/file.svg?react';
+import ManagementApiResourceDark from '@/assets/icons/management-api-resource-dark.svg?react';
+import ManagementApiResource from '@/assets/icons/management-api-resource.svg?react';
+import DetailsPage from '@/components/DetailsPage';
+import DetailsPageHeader, { type MenuItem } from '@/components/DetailsPage/DetailsPageHeader';
+import Drawer from '@/components/Drawer';
+import PageMeta from '@/components/PageMeta';
+import { ApiResourceDetailsTabs } from '@/consts/page-tabs';
+import DeleteConfirmModal from '@/ds-components/DeleteConfirmModal';
+import TabNav, { TabNavItem } from '@/ds-components/TabNav';
 import type { RequestError } from '@/hooks/use-api';
 import useApi from '@/hooks/use-api';
-import { useTheme } from '@/hooks/use-theme';
-import * as detailsStyles from '@/scss/details.module.scss';
+import useDocumentationUrl from '@/hooks/use-documentation-url';
+import useTenantPathname from '@/hooks/use-tenant-pathname';
+import useTheme from '@/hooks/use-theme';
 
-import * as styles from './index.module.scss';
+import GuideDrawer from './components/GuideDrawer';
+import GuideModal from './components/GuideModal';
+import ManagementApiNotice from './components/ManagementApiNotice';
+import styles from './index.module.scss';
+import { type ApiResourceDetailsOutletContext } from './types';
 
-type FormData = {
-  name: string;
-  accessTokenTtl: number;
+const icons = {
+  [Theme.Light]: { ApiIcon: ApiResource, ManagementApiIcon: ManagementApiResource },
+  [Theme.Dark]: { ApiIcon: ApiResourceDark, ManagementApiIcon: ManagementApiResourceDark },
 };
 
-const ApiResourceDetails = () => {
-  const location = useLocation();
-  const { id } = useParams();
+function ApiResourceDetails() {
+  const { pathname } = useLocation();
+  const { id, guideId } = useParams();
+  const { navigate, match } = useTenantPathname();
+  const { getDocumentationUrl } = useDocumentationUrl();
+  const isGuideView = !!id && !!guideId && match(`/api-resources/${id}/guide/${guideId}`);
+
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const navigate = useNavigate();
-  const { data, error, mutate } = useSWR<Resource, RequestError>(id && `/api/resources/${id}`);
+  const { data, error, mutate } = useSWR<Resource, RequestError>(id && `api/resources/${id}`);
   const isLoading = !data && !error;
   const theme = useTheme();
-  const Icon = theme === AppearanceMode.LightMode ? ApiResource : ApiResourceDark;
+  const { ApiIcon, ManagementApiIcon } = icons[theme];
 
-  const isLogtoManagementApiResource = data?.id === managementResource.id;
+  const isOnPermissionPage = pathname.endsWith(ApiResourceDetailsTabs.Permissions);
+  const isLogtoManagementApiResource = isManagementApi(data?.indicator ?? '');
+  const Icon = isLogtoManagementApiResource ? ManagementApiIcon : ApiIcon;
 
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleted, setIsDeleted] = useState(false);
-
-  const {
-    handleSubmit,
-    register,
-    reset,
-    formState: { isDirty, isSubmitting, errors },
-  } = useForm<FormData>({
-    defaultValues: data,
-  });
-
-  const api = useApi();
-
+  const [isGuideDrawerOpen, setIsGuideDrawerOpen] = useState(false);
   const [isDeleteFormOpen, setIsDeleteFormOpen] = useState(false);
 
   useEffect(() => {
-    if (!data) {
-      return;
-    }
-    reset(data);
-  }, [data, reset]);
+    setIsDeleteFormOpen(false);
+  }, [pathname]);
 
-  const onSubmit = handleSubmit(async (formData) => {
-    if (!data || isSubmitting) {
-      return;
-    }
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    const updatedApiResource = await api
-      .patch(`/api/resources/${data.id}`, { json: formData })
-      .json<Resource>();
-    void mutate(updatedApiResource);
-    toast.success(t('general.saved'));
-  });
+  const api = useApi();
 
   const onDelete = async () => {
     if (!data || isDeleting) {
@@ -91,108 +74,122 @@ const ApiResourceDetails = () => {
     setIsDeleting(true);
 
     try {
-      await api.delete(`/api/resources/${data.id}`);
-      setIsDeleted(true);
-      setIsDeleting(false);
-      setIsDeleteFormOpen(false);
+      await api.delete(`api/resources/${data.id}`);
       toast.success(t('api_resource_details.api_resource_deleted', { name: data.name }));
       navigate(`/api-resources`);
-    } catch {
+    } finally {
       setIsDeleting(false);
     }
   };
 
+  const onCloseDrawer = () => {
+    setIsGuideDrawerOpen(false);
+  };
+
+  if (isGuideView) {
+    return (
+      <GuideModal
+        guideId={guideId}
+        apiResource={data}
+        onClose={() => {
+          navigate(`/api-resources/${id}`);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className={detailsStyles.container}>
-      <TextLink to="/api-resources" icon={<Back />} className={styles.backLink}>
-        {t('api_resource_details.back_to_api_resources')}
-      </TextLink>
-      {isLoading && <DetailsSkeleton />}
-      {!data && error && <div>{`error occurred: ${error.body?.message ?? error.message}`}</div>}
+    <DetailsPage
+      backLink="/api-resources"
+      backLinkTitle="api_resource_details.back_to_api_resources"
+      isLoading={isLoading}
+      error={error}
+      className={classNames(isOnPermissionPage && styles.permissionPage)}
+      onRetry={mutate}
+    >
+      <PageMeta titleKey="api_resource_details.page_title" />
+      {isLogtoManagementApiResource && <ManagementApiNotice />}
       {data && (
         <>
-          <Card className={styles.header}>
-            <div className={styles.info}>
-              <Icon className={styles.icon} />
-              <div className={styles.meta}>
-                <div className={styles.name}>{data.name}</div>
-                <CopyToClipboard size="small" value={data.indicator} />
-              </div>
-            </div>
-            {!isLogtoManagementApiResource && (
-              <div className={styles.operations}>
-                <ActionMenu
-                  buttonProps={{ icon: <More className={styles.moreIcon} />, size: 'large' }}
-                  title={t('general.more_options')}
-                >
-                  <ActionMenuItem
-                    icon={<Delete />}
-                    type="danger"
-                    onClick={() => {
-                      setIsDeleteFormOpen(true);
-                    }}
-                  >
-                    {t('general.delete')}
-                  </ActionMenuItem>
-                </ActionMenu>
-                <DeleteConfirmModal
-                  isOpen={isDeleteFormOpen}
-                  isLoading={isDeleting}
-                  expectedInput={data.name}
-                  className={styles.deleteConfirm}
-                  inputPlaceholder={t('api_resource_details.enter_your_api_resource_name')}
-                  onCancel={() => {
-                    setIsDeleteFormOpen(false);
-                  }}
-                  onConfirm={onDelete}
-                >
-                  <div className={styles.description}>
-                    <Trans components={{ span: <span className={styles.highlight} /> }}>
-                      {t('api_resource_details.delete_description', { name: data.name })}
-                    </Trans>
-                  </div>
-                </DeleteConfirmModal>
-              </div>
+          <DetailsPageHeader
+            icon={<Icon />}
+            title={data.name}
+            primaryTag={data.isDefault && t('api_resources.default_api')}
+            identifier={{
+              name: 'API Identifier',
+              value: data.indicator,
+            }}
+            additionalActionButton={{
+              icon: <File />,
+              title: 'application_details.check_guide',
+              onClick: () => {
+                if (isLogtoManagementApiResource) {
+                  window.open(
+                    getDocumentationUrl('/docs/recipes/interact-with-management-api/'),
+                    '_blank'
+                  );
+                } else {
+                  setIsGuideDrawerOpen(true);
+                }
+              },
+            }}
+            actionMenuItems={conditionalArray<MenuItem>(
+              // Should not show delete button for management api resource.
+              !isLogtoManagementApiResource && {
+                icon: <Delete />,
+                title: 'general.delete',
+                type: 'danger',
+                onClick: () => {
+                  setIsDeleteFormOpen(true);
+                },
+              }
             )}
-          </Card>
-          <TabNav>
-            <TabNavItem href={location.pathname}>{t('general.settings_nav')}</TabNavItem>
-          </TabNav>
-          <DetailsForm
-            isDirty={isDirty}
-            isSubmitting={isSubmitting}
-            onDiscard={reset}
-            onSubmit={onSubmit}
-          >
-            <FormCard
-              title="api_resource_details.settings"
-              description="api_resource_details.settings_description"
-              learnMoreLink="https://docs.logto.io/docs/recipes/protect-your-api"
+          />
+          <Drawer isOpen={isGuideDrawerOpen} onClose={onCloseDrawer}>
+            <GuideDrawer apiResource={data} onClose={onCloseDrawer} />
+          </Drawer>
+          {/* Can not delete management api resource. */}
+          {!isLogtoManagementApiResource && (
+            <DeleteConfirmModal
+              isOpen={isDeleteFormOpen}
+              isLoading={isDeleting}
+              expectedInput={data.name}
+              className={styles.deleteConfirm}
+              inputPlaceholder={t('api_resource_details.enter_your_api_resource_name')}
+              onCancel={() => {
+                setIsDeleteFormOpen(false);
+              }}
+              onConfirm={onDelete}
             >
-              <FormField isRequired title="api_resources.api_name">
-                <TextInput
-                  {...register('name', { required: true })}
-                  hasError={Boolean(errors.name)}
-                  readOnly={isLogtoManagementApiResource}
-                  placeholder={t('api_resources.api_name_placeholder')}
-                />
-              </FormField>
-              <FormField isRequired title="api_resource_details.token_expiration_time_in_seconds">
-                <TextInput
-                  {...register('accessTokenTtl', { required: true, valueAsNumber: true })}
-                  hasError={Boolean(errors.accessTokenTtl)}
-                  placeholder={t(
-                    'api_resource_details.token_expiration_time_in_seconds_placeholder'
-                  )}
-                />
-              </FormField>
-            </FormCard>
-          </DetailsForm>
+              <div className={styles.description}>
+                <Trans components={{ span: <span className={styles.highlight} /> }}>
+                  {t('api_resource_details.delete_description', { name: data.name })}
+                </Trans>
+              </div>
+            </DeleteConfirmModal>
+          )}
+          <TabNav>
+            <TabNavItem href={`/api-resources/${data.id}/${ApiResourceDetailsTabs.Permissions}`}>
+              {t('api_resource_details.permissions_tab')}
+            </TabNavItem>
+            <TabNavItem href={`/api-resources/${data.id}/${ApiResourceDetailsTabs.General}`}>
+              {t('api_resource_details.general_tab')}
+            </TabNavItem>
+          </TabNav>
+          <Outlet
+            context={
+              {
+                resource: data,
+                isDeleting,
+                isLogtoManagementApiResource,
+                onResourceUpdated: mutate,
+              } satisfies ApiResourceDetailsOutletContext
+            }
+          />
         </>
       )}
-      <UnsavedChangesAlertModal hasUnsavedChanges={!isDeleted && isDirty} />
-    </div>
+    </DetailsPage>
   );
-};
+}
 
 export default ApiResourceDetails;

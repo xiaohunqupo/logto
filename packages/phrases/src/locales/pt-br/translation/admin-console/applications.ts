@@ -1,50 +1,68 @@
 const applications = {
+  page_title: 'Aplicativos',
   title: 'Aplicativos',
   subtitle:
-    'Configure um aplicativo móvel, single page ou tradicional para usar o Logto para autenticação',
+    'Configure um aplicativo móvel, de página única, máquina a máquina ou tradicional para usar o Logto para autenticação',
+  subtitle_with_app_type: 'Configure a autenticação Logto para o seu aplicativo {{name}}',
   create: 'Criar aplicativo',
+  create_subtitle_third_party:
+    'Use o Logto como seu provedor de identidade (IdP) para integrar facilmente com aplicativos de terceiros',
   application_name: 'Nome do Aplicativo',
   application_name_placeholder: 'Meu aplicativo',
   application_description: 'Descrição do aplicativo',
   application_description_placeholder: 'Digite a descrição do seu aplicativo',
   select_application_type: 'Selecione um tipo de aplicativo',
   no_application_type_selected: 'Você ainda não selecionou nenhum tipo de aplicativo',
-  application_created:
-    'O aplicativo {{name}} foi criado com sucesso! \nAgora conclua as configurações do aplicativo.',
-  app_id: 'ID do aplicativo',
+  application_created: 'O aplicativo foi criado com sucesso.',
+  tab: {
+    my_applications: 'Meus aplicativos',
+    third_party_applications: 'Aplicativos de terceiros',
+  },
+  app_id: 'ID do App',
   type: {
     native: {
-      title: 'Native App',
+      title: 'Aplicativo Nativo',
       subtitle: 'Um aplicativo executado em um ambiente nativo',
-      description: 'Ex: iOS app, Android app',
+      description: 'Ex: aplicativo iOS, aplicativo Android',
     },
     spa: {
-      title: 'Single Page App',
+      title: 'Aplicativo de Página Única',
       subtitle:
         'Um aplicativo que é executado em um navegador da Web e atualiza dinamicamente os dados no local',
-      description: 'Ex: React DOM app, Vue app',
+      description: 'Ex: aplicativo React DOM, aplicativo Vue',
     },
     traditional: {
-      title: 'Traditional Web',
+      title: 'Web Tradicional',
       subtitle: 'Um aplicativo que renderiza e atualiza páginas apenas pelo servidor da web',
-      description: 'Ex: Next.js, PHP',
+      description: 'Ex: aplicativo Next.js, PHP',
     },
     machine_to_machine: {
-      title: 'Machine to Machine',
+      title: 'Máquina a Máquina',
       subtitle: 'Um aplicativo (geralmente um serviço) que fala diretamente com os recursos',
-      description: 'Ex: Backend service',
+      description: 'Ex: serviço de backend',
+    },
+    protected: {
+      title: 'Aplicativo Protegido',
+      subtitle: 'Um aplicativo protegido pelo Logto',
+      description: 'N/A',
+    },
+    saml: {
+      /** UNTRANSLATED */
+      title: 'SAML App',
+      /** UNTRANSLATED */
+      subtitle: 'An app that is used as an SAML IdP connector',
+      /** UNTRANSLATED */
+      description: 'E.g., SAML',
+    },
+    third_party: {
+      title: 'Aplicativo de Terceiros',
+      subtitle: 'Um aplicativo usado como conector de IdP de terceiros',
+      description: 'Ex.: OIDC, SAML',
     },
   },
-  guide: {
-    get_sample_file: 'Obter amostra',
-    header_description:
-      'Siga um guia passo a passo para integrar seu aplicativo ou clique no botão direito para obter nosso projeto de amostra',
-    title: 'O aplicativo foi criado com sucesso',
-    subtitle:
-      'Agora siga as etapas abaixo para concluir as configurações do aplicativo. Selecione o tipo de SDK para continuar.',
-    description_by_sdk:
-      'Este guia de início rápido demonstra como integrar o Logto ao aplicativo {{sdk}}',
-  },
+  placeholder_title: 'Selecione um tipo de aplicativo para continuar',
+  placeholder_description:
+    'O Logto usa uma entidade de aplicativo para OIDC para ajudar nas tarefas, como identificar seus aplicativos, gerenciar o login e criar logs de auditoria.',
 };
 
-export default applications;
+export default Object.freeze(applications);

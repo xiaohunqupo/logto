@@ -1,14 +1,14 @@
 import { ConnectorPlatform } from '@logto/schemas';
 
-import Native from '@/assets/images/connector-platform-icon-native.svg';
-import Universal from '@/assets/images/connector-platform-icon-universal.svg';
-import Web from '@/assets/images/connector-platform-icon-web.svg';
+import Native from '@/assets/icons/connector-platform-icon-native.svg?react';
+import Universal from '@/assets/icons/connector-platform-icon-universal.svg?react';
+import Web from '@/assets/icons/connector-platform-icon-web.svg?react';
 
 type Props = {
-  platform: ConnectorPlatform;
+  readonly platform: ConnectorPlatform;
 };
 
-const ConnectorPlatformIcon = ({ platform }: Props) => {
+function ConnectorPlatformIcon({ platform }: Props) {
   if (platform === ConnectorPlatform.Native) {
     return <Native />;
   }
@@ -18,6 +18,6 @@ const ConnectorPlatformIcon = ({ platform }: Props) => {
   }
 
   return <Universal />;
-};
+}
 
 export default ConnectorPlatformIcon;

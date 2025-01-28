@@ -1,9 +1,10 @@
 const log_details = {
+  page_title: "Détails du journal d'audit",
   back_to_logs: "Retour aux journaux d'audit",
-  back_to_user: 'Retour à {{name}}',
+  back_to: 'Retour à {{name}}',
   success: 'Succès',
   failed: 'Échoué',
-  event_key: 'Event Key', // UNTRANSLATED
+  event_key: "Clé d'événement",
   application: 'Application',
   ip_address: 'Addresse IP',
   user: 'Utilisateur',
@@ -14,4 +15,4 @@ const log_details = {
   raw_data: 'Données brutes',
 };
 
-export default log_details;
+export default Object.freeze(log_details);

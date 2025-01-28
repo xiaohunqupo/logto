@@ -1,15 +1,13 @@
 const demo_app = {
-  notification:
-    'Utilisez votre compte administrateur par défaut ou créez un nouveau compte pour vous connecter à la démo.',
-  title: 'Vous avez réussi à vous connecter à la démo !',
-  subtitle: 'Voici vos informations de connexion :',
-  username: "Nom d'utilisateur : ",
+  title: "Vous vous êtes connecté avec succès à l'aperçu en direct !",
+  subtitle: 'Voici vos informations utilisateur :',
+  username: "Nom d'utilisateur :",
   user_id: "ID de l'utilisateur :",
-  sign_out: 'Déconnexion de la démo',
+  sign_out: "Se déconnecter de l'aperçu en direct",
   continue_explore: 'Ou continuer à explorer',
   customize_sign_in_experience: "Personnaliser l'expérience de connexion",
-  enable_passwordless: 'Activer la fonction sans mot de passe',
+  enable_passwordless: 'Activer la connexion sans mot de passe',
   add_social_connector: 'Ajouter un connecteur social',
 };
 
-export default demo_app;
+export default Object.freeze(demo_app);

@@ -1,6 +1,6 @@
 {
   "name": "@logto/core-kit",
-  "version": "1.0.0-beta.29",
+  "version": "2.5.2",
   "author": "Silverhand Inc. <contact@silverhand.io>",
   "homepage": "https://github.com/logto-io/toolkit#readme",
   "repository": {
@@ -9,11 +9,19 @@
   },
   "license": "MPL-2.0",
   "type": "module",
-  "main": "./lib/index.cjs",
+  "main": "./lib/index.js",
   "exports": {
-    "types": "./lib/index.d.ts",
-    "import": "./lib/index.js",
-    "require": "./lib/index.cjs"
+    ".": {
+      "default": "./lib/index.js",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./declaration": "./declaration/index.ts",
+    "./scss/*": "./scss/*.scss",
+    "./custom-jwt": {
+      "node": "./lib/custom-jwt/index.js",
+      "types": "./lib/custom-jwt/index.d.ts"
+    }
   },
   "types": "./lib/index.d.ts",
   "files": [
@@ -24,49 +32,43 @@
   "scripts": {
     "precommit": "lint-staged",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput --incremental",
-    "build": "rm -rf lib/ && rollup -c && tsc -p tsconfig.build.json",
-    "build:test": "pnpm build -p tsconfig.test.json --sourcemap",
+    "build": "rm -rf lib/ && tsc -p tsconfig.build.json",
+    "build:test": "pnpm build",
     "lint": "eslint --ext .ts src",
     "lint:report": "pnpm lint --format json --output-file report.json",
     "prepack": "pnpm build",
     "stylelint": "stylelint \"scss/**/*.scss\"",
-    "test:only": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test": "pnpm build:test && pnpm test:only",
-    "test:ci": "pnpm test:only",
-    "test:coverage": "pnpm test:only --silent --coverage"
+    "test": "vitest src",
+    "test:ci": "pnpm run test --silent --coverage"
   },
   "engines": {
-    "node": "^16.13.0 || ^18.12.0"
+    "node": "^20.9.0"
   },
   "dependencies": {
-    "@logto/language-kit": "workspace:*",
-    "color": "^4.2.3",
-    "nanoid": "^4.0.0"
+    "@logto/language-kit": "workspace:^1.1.0",
+    "@logto/shared": "workspace:^3.1.0",
+    "@silverhand/essentials": "^2.9.1",
+    "color": "^4.2.3"
   },
   "optionalDependencies": {
-    "zod": "^3.20.2"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@jest/types": "^29.0.3",
-    "@rollup/plugin-typescript": "^10.0.1",
-    "@silverhand/eslint-config": "1.3.0",
-    "@silverhand/eslint-config-react": "1.3.0",
-    "@silverhand/essentials": "2.1.0",
-    "@silverhand/ts-config": "1.2.1",
-    "@types/color": "^3.0.3",
-    "@types/jest": "^29.0.3",
-    "@types/node": "^16.3.1",
-    "@types/react": "^18.0.20",
-    "eslint": "^8.21.0",
-    "jest": "^29.0.3",
-    "jest-matcher-specific-error": "^1.0.0",
-    "lint-staged": "^13.0.0",
-    "postcss": "^8.4.6",
-    "prettier": "^2.8.1",
-    "rollup": "^3.6.0",
-    "stylelint": "^14.9.1",
-    "tslib": "^2.4.1",
-    "typescript": "^4.9.4"
+    "@silverhand/eslint-config": "6.0.1",
+    "@silverhand/eslint-config-react": "6.0.2",
+    "@silverhand/ts-config": "6.0.0",
+    "@silverhand/ts-config-react": "6.0.0",
+    "@types/color": "^4.0.0",
+    "@types/node": "^20.9.5",
+    "@types/react": "^18.3.3",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^8.56.0",
+    "lint-staged": "^15.0.0",
+    "postcss": "^8.4.31",
+    "prettier": "^3.0.0",
+    "stylelint": "^15.0.0",
+    "typescript": "^5.5.3",
+    "vitest": "^2.1.8"
   },
   "eslintConfig": {
     "extends": "@silverhand"

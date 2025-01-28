@@ -1,15 +1,15 @@
 import { useTranslation } from 'react-i18next';
 
-import Failed from '@/assets/images/failed.svg';
-import Success from '@/assets/images/success.svg';
+import Failed from '@/assets/icons/failed.svg?react';
+import Success from '@/assets/icons/success.svg?react';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  isSuccess: boolean;
+  readonly isSuccess: boolean;
 };
 
-const EventIcon = ({ isSuccess }: Props) => {
+function EventIcon({ isSuccess }: Props) {
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
 
   return (
@@ -22,6 +22,6 @@ const EventIcon = ({ isSuccess }: Props) => {
       </div>
     </div>
   );
-};
+}
 
 export default EventIcon;

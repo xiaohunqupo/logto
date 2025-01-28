@@ -1,19 +1,15 @@
-import IllustrationDark from '@/assets/images/loading-illustration-dark.svg';
-import Illustration from '@/assets/images/loading-illustration.svg';
-import { Daisy as Spinner } from '@/components/Spinner';
-import { useTheme } from '@/hooks/use-theme';
+import Logo from '@/assets/images/logo.svg?react';
+import { Daisy as Spinner } from '@/ds-components/Spinner';
 
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
-const AppLoading = () => {
-  const theme = useTheme();
-
+function AppLoading() {
   return (
     <div className={styles.container}>
-      {theme === 'light' ? <Illustration /> : <IllustrationDark />}
+      <Logo />
       <Spinner />
     </div>
   );
-};
+}
 
 export default AppLoading;

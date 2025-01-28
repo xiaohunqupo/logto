@@ -4,10 +4,11 @@
   display: flex;
   align-items: center;
   white-space: nowrap;
+  gap: _.unit(2);
 
   .icon {
     flex-shrink: 0;
-    margin-right: _.unit(1);
+    margin-inline-end: _.unit(1);
     width: 24px;
     height: 24px;
 
@@ -21,8 +22,9 @@
   }
 
   .title {
-    font: var(--font-body-medium);
+    font: var(--font-body-2);
     color: var(--color-text-link);
     text-decoration: none;
+    @include _.text-ellipsis;
   }
 }

@@ -1,175 +1,134 @@
 import type { Resource } from '@logto/schemas';
-import { AppearanceMode } from '@logto/schemas';
-import classNames from 'classnames';
-import { toast } from 'react-hot-toast';
+import { Theme, isManagementApi } from '@logto/schemas';
 import { useTranslation } from 'react-i18next';
-import Modal from 'react-modal';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import useSWR from 'swr';
 
-import ApiResourceDark from '@/assets/images/api-resource-dark.svg';
-import ApiResource from '@/assets/images/api-resource.svg';
-import Plus from '@/assets/images/plus.svg';
-import Button from '@/components/Button';
-import CardTitle from '@/components/CardTitle';
-import CopyToClipboard from '@/components/CopyToClipboard';
+import ApiResourceDark from '@/assets/icons/api-resource-dark.svg?react';
+import ApiResource from '@/assets/icons/api-resource.svg?react';
+import ManagementApiResourceDark from '@/assets/icons/management-api-resource-dark.svg?react';
+import ManagementApiResource from '@/assets/icons/management-api-resource.svg?react';
+import EmptyDataPlaceholder from '@/components/EmptyDataPlaceholder';
 import ItemPreview from '@/components/ItemPreview';
-import Pagination from '@/components/Pagination';
-import TableEmpty from '@/components/Table/TableEmpty';
-import TableError from '@/components/Table/TableError';
-import TableLoading from '@/components/Table/TableLoading';
+import ListPage from '@/components/ListPage';
+import { defaultPageSize } from '@/consts';
+import { ApiResourceDetailsTabs } from '@/consts/page-tabs';
+import CopyToClipboard from '@/ds-components/CopyToClipboard';
+import Tag from '@/ds-components/Tag';
 import type { RequestError } from '@/hooks/use-api';
-import { useTheme } from '@/hooks/use-theme';
-import * as modalStyles from '@/scss/modal.module.scss';
-import * as resourcesStyles from '@/scss/resources.module.scss';
-import * as tableStyles from '@/scss/table.module.scss';
+import useSearchParametersWatcher from '@/hooks/use-search-parameters-watcher';
+import useTenantPathname from '@/hooks/use-tenant-pathname';
+import useTheme from '@/hooks/use-theme';
+import { buildUrl } from '@/utils/url';
 
-import CreateForm from './components/CreateForm';
-import * as styles from './index.module.scss';
+import GuideLibraryModal from './components/GuideLibraryModal';
+import styles from './index.module.scss';
 
+const pageSize = defaultPageSize;
 const apiResourcesPathname = '/api-resources';
 const createApiResourcePathname = `${apiResourcesPathname}/create`;
-const buildDetailsPathname = (id: string) => `${apiResourcesPathname}/${id}`;
+const buildDetailsPathname = (id: string) =>
+  `${apiResourcesPathname}/${id}/${ApiResourceDetailsTabs.Permissions}`;
 
-const pageSize = 20;
+const icons = {
+  [Theme.Light]: { ApiIcon: ApiResource, ManagementApiIcon: ManagementApiResource },
+  [Theme.Dark]: { ApiIcon: ApiResourceDark, ManagementApiIcon: ManagementApiResourceDark },
+};
 
-const ApiResources = () => {
-  const { pathname } = useLocation();
-  const isCreateNew = pathname.endsWith('/create');
+function ApiResources() {
+  const { search } = useLocation();
   const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-  const [query, setQuery] = useSearchParams();
-  const search = query.toString();
-  const pageIndex = Number(query.get('page') ?? '1');
-  const { data, error, mutate } = useSWR<[Resource[], number], RequestError>(
-    `/api/resources?page=${pageIndex}&page_size=${pageSize}`
-  );
+  const [{ page }, updateSearchParameters] = useSearchParametersWatcher({
+    page: 1,
+  });
+
+  const url = buildUrl('api/resources', {
+    page: String(page),
+    page_size: String(pageSize),
+  });
+
+  const { data, error, mutate } = useSWR<[Resource[], number], RequestError>(url);
+
   const isLoading = !data && !error;
-  const navigate = useNavigate();
+  const { navigate, match } = useTenantPathname();
   const theme = useTheme();
   const [apiResources, totalCount] = data ?? [];
 
+  const { ApiIcon, ManagementApiIcon } = icons[theme];
+  const isCreating = match(createApiResourcePathname);
+
   return (
-    <div className={resourcesStyles.container}>
-      <div className={resourcesStyles.headline}>
-        <CardTitle title="api_resources.title" subtitle="api_resources.subtitle" />
-        <Button
-          title="api_resources.create"
-          type="primary"
-          size="large"
-          icon={<Plus />}
-          onClick={() => {
+    <>
+      <ListPage
+        title={{
+          title: 'api_resources.title',
+          subtitle: 'api_resources.subtitle',
+        }}
+        pageMeta={{ titleKey: 'api_resources.page_title' }}
+        createButton={{
+          title: 'api_resources.create',
+          onClick: () => {
             navigate({
               pathname: createApiResourcePathname,
               search,
             });
-          }}
-        />
-        <Modal
-          shouldCloseOnEsc
-          isOpen={isCreateNew}
-          className={modalStyles.content}
-          overlayClassName={modalStyles.overlay}
-          onRequestClose={() => {
-            navigate({
-              pathname: apiResourcesPathname,
-              search,
-            });
-          }}
-        >
-          <CreateForm
-            onClose={(createdApiResource) => {
-              if (createdApiResource) {
-                toast.success(
-                  t('api_resources.api_resource_created', { name: createdApiResource.name })
-                );
-                navigate(buildDetailsPathname(createdApiResource.id), { replace: true });
-
-                return;
-              }
-              navigate({
-                pathname: apiResourcesPathname,
-                search,
-              });
-            }}
-          />
-        </Modal>
-      </div>
-      <div className={resourcesStyles.table}>
-        <div className={tableStyles.scrollable}>
-          <table className={classNames(!data && tableStyles.empty)}>
-            <colgroup>
-              <col className={styles.apiResourceName} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>{t('api_resources.api_name')}</th>
-                <th>{t('api_resources.api_identifier')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data && error && (
-                <TableError
-                  columns={2}
-                  content={error.body?.message ?? error.message}
-                  onRetry={async () => mutate(undefined, true)}
-                />
-              )}
-              {isLoading && <TableLoading columns={2} />}
-              {apiResources?.length === 0 && (
-                <TableEmpty columns={2}>
-                  <Button
-                    title="api_resources.create"
-                    type="outline"
-                    onClick={() => {
-                      navigate({
-                        pathname: createApiResourcePathname,
-                        search,
-                      });
-                    }}
-                  />
-                </TableEmpty>
-              )}
-              {apiResources?.map(({ id, name, indicator }) => {
-                const ResourceIcon =
-                  theme === AppearanceMode.LightMode ? ApiResource : ApiResourceDark;
-
+          },
+        }}
+        table={{
+          rowGroups: [{ key: 'apiResources', data: apiResources }],
+          rowIndexKey: 'id',
+          isLoading,
+          errorMessage: error?.body?.message ?? error?.message,
+          columns: [
+            {
+              title: t('api_resources.api_name'),
+              dataIndex: 'name',
+              colSpan: 6,
+              render: ({ id, name, isDefault, indicator }) => {
+                const Icon = isManagementApi(indicator) ? ManagementApiIcon : ApiIcon;
                 return (
-                  <tr
-                    key={id}
-                    className={tableStyles.clickable}
-                    onClick={() => {
-                      navigate(buildDetailsPathname(id));
-                    }}
-                  >
-                    <td>
-                      <ItemPreview
-                        title={name}
-                        icon={<ResourceIcon className={styles.icon} />}
-                        to={buildDetailsPathname(id)}
-                      />
-                    </td>
-                    <td>
-                      <CopyToClipboard value={indicator} variant="text" />
-                    </td>
-                  </tr>
+                  <ItemPreview
+                    title={name}
+                    icon={<Icon className={styles.icon} />}
+                    to={buildDetailsPathname(id)}
+                    suffix={isDefault && <Tag>{t('api_resources.default_api')}</Tag>}
+                  />
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <Pagination
-        pageIndex={pageIndex}
-        totalCount={totalCount}
-        pageSize={pageSize}
-        className={styles.pagination}
-        onChange={(page) => {
-          setQuery({ page: String(page) });
+              },
+            },
+            {
+              title: t('api_resources.api_identifier'),
+              dataIndex: 'indicator',
+              colSpan: 10,
+              render: ({ indicator }) => <CopyToClipboard value={indicator} variant="text" />,
+            },
+          ],
+          placeholder: <EmptyDataPlaceholder />,
+          rowClickHandler: ({ id }) => {
+            navigate(buildDetailsPathname(id));
+          },
+          onRetry: async () => mutate(undefined, true),
+          pagination: {
+            page,
+            totalCount,
+            pageSize,
+            onChange: (page) => {
+              updateSearchParameters({ page });
+            },
+          },
         }}
       />
-    </div>
+      <GuideLibraryModal
+        isOpen={isCreating}
+        onClose={() => {
+          navigate({
+            pathname: apiResourcesPathname,
+            search,
+          });
+        }}
+      />
+    </>
   );
-};
+}
 
 export default ApiResources;

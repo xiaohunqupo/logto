@@ -1,12 +1,17 @@
 import type { SchemaLike } from '@logto/schemas';
-import { convertToPrimitiveOrSql } from '@logto/shared';
 import { assert } from '@silverhand/essentials';
+import {
+  createPool,
+  parseDsn,
+  sql,
+  stringifyDsn,
+  createInterceptorsPreset,
+} from '@silverhand/slonik';
 import decamelize from 'decamelize';
-import { createPool, parseDsn, sql, stringifyDsn } from 'slonik';
-import { createInterceptors } from 'slonik-interceptor-preset';
-import { z } from 'zod';
+import { DatabaseError } from 'pg-protocol';
 
-import { ConfigKey, getCliConfigWithPrompt, log } from './utilities.js';
+import { convertToPrimitiveOrSql } from './sql.js';
+import { ConfigKey, consoleLog, getCliConfigWithPrompt } from './utils.js';
 
 export const defaultDatabaseUrl = 'postgresql://localhost:5432/logto';
 
@@ -22,7 +27,7 @@ export const createPoolFromConfig = async () => {
   assert(parseDsn(databaseUrl).databaseName, new Error('Database name is required in URL'));
 
   return createPool(databaseUrl, {
-    interceptors: createInterceptors(),
+    interceptors: createInterceptorsPreset(),
   });
 };
 
@@ -36,12 +41,10 @@ export const createPoolAndDatabaseIfNeeded = async () => {
   try {
     return await createPoolFromConfig();
   } catch (error: unknown) {
-    const result = z.object({ code: z.string() }).safeParse(error);
-
     // Database does not exist, try to create one
     // https://www.postgresql.org/docs/14/errcodes-appendix.html
-    if (!(result.success && result.data.code === '3D000')) {
-      log.error(error);
+    if (!(error instanceof DatabaseError && error.code === '3D000')) {
+      consoleLog.fatal(error);
     }
 
     const databaseUrl = await getDatabaseUrlFromConfig();
@@ -51,7 +54,7 @@ export const createPoolAndDatabaseIfNeeded = async () => {
     // - It will throw error when creating database using '?'
     const databaseName = dsn.databaseName ?? '?';
     const maintenancePool = await createPool(stringifyDsn({ ...dsn, databaseName: 'postgres' }), {
-      interceptors: createInterceptors(),
+      interceptors: createInterceptorsPreset(),
     });
     await maintenancePool.query(sql`
       create database ${sql.identifier([databaseName])}
@@ -61,14 +64,25 @@ export const createPoolAndDatabaseIfNeeded = async () => {
     `);
     await maintenancePool.end();
 
-    log.succeed(`Created database ${databaseName}`);
+    consoleLog.succeed(`Created database ${databaseName}`);
 
     return createPoolFromConfig();
   }
 };
 
-export const insertInto = <T extends SchemaLike>(object: T, table: string) => {
-  const keys = Object.keys(object);
+/**
+ * Build an `insert into` query from the given payload. If the payload is an array, it will insert
+ * multiple rows.
+ */
+export const insertInto = <T extends SchemaLike<string>>(payload: T | T[], table: string) => {
+  const first = Array.isArray(payload) ? payload[0] : payload;
+
+  if (!first) {
+    throw new Error('Payload cannot be empty');
+  }
+
+  const keys = Object.keys(first);
+  const values = Array.isArray(payload) ? payload : [payload];
 
   return sql`
     insert into ${sql.identifier([table])}
@@ -76,9 +90,15 @@ export const insertInto = <T extends SchemaLike>(object: T, table: string) => {
       keys.map((key) => sql.identifier([decamelize(key)])),
       sql`, `
     )})
-    values (${sql.join(
-      keys.map((key) => convertToPrimitiveOrSql(key, object[key] ?? null)),
+    values ${sql.join(
+      values.map(
+        (object) =>
+          sql`(${sql.join(
+            keys.map((key) => convertToPrimitiveOrSql(key, object[key] ?? null)),
+            sql`, `
+          )})`
+      ),
       sql`, `
-    )})
+    )}
   `;
 };

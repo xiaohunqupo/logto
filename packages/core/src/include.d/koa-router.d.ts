@@ -67,7 +67,7 @@ declare module 'koa-router' {
 
     export type RouterContext<
       StateT = unknown,
-      CustomT = Record<string, unknown>
+      CustomT = Record<string, unknown>,
     > = Koa.ParameterizedContext<StateT, CustomT & IRouterParamContext<StateT, CustomT>>;
 
     // For backward compatibility IRouterContext needs to be an interface
@@ -203,6 +203,11 @@ declare module 'koa-router' {
       path: string | string[] | RegExp,
       ...middleware: Array<Router.IMiddleware<StateT, CustomT>>
     ): Router<StateT, CustomT>;
+    use<T, U>(
+      path: string | RegExp | Array<string | RegExp>,
+      middleware: Koa.Middleware<T, U>,
+      routeHandler: Router.IMiddleware<StateT & T, CustomT & U>
+    ): Router<StateT & T, CustomT & U>;
 
     /**
      * HTTP get method
@@ -274,11 +279,21 @@ declare module 'koa-router' {
       middleware2: Koa.Middleware<StateT & T1, CustomT & U1>,
       routeHandler: Router.IMiddleware<StateT & T1 & T2, CustomT & U1 & U2>
     ): Router<StateT & T1 & T2, CustomT & U1 & U2>;
+    /**
+     * Note: When the middleware type has more than 3 generic types, TypeScript infers it as `unknown`.
+     * Here, we ensure that the input types of these 3 middleware don't depend on preceding types,
+     * only on the router's provided types.
+     *
+     * P.S. This type might not handle cases where later middleware depends on preceding middleware.
+     * While imperfect, this definition works for most cases.
+     * When there is a genuine need for dependencies between middlewares,
+     * consider taking inspiration from `interactionRoutes` to define types for the Router.
+     */
     post<T1, U1, T2, U2, T3, U3>(
       path: string | RegExp | Array<string | RegExp>,
-      middleware1: Koa.Middleware<T1, U1>,
-      middleware2: Koa.Middleware<StateT & T1, CustomT & U1>,
-      middleware3: Koa.Middleware<StateT & T1 & T2, CustomT & U1 & U2>,
+      middleware1: Koa.Middleware<StateT & T1, CustomT & U1>,
+      middleware2: Koa.Middleware<StateT & T2, CustomT & U2>,
+      middleware3: Koa.Middleware<StateT & T3, CustomT & U3>,
       routeHandler: Router.IMiddleware<StateT & T1 & T2 & T3, CustomT & U1 & U2 & U3>
     ): Router<StateT & T1 & T2 & T3, CustomT & U1 & U2 & U3>;
 

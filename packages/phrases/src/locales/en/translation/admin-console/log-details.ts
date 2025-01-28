@@ -1,9 +1,10 @@
 const log_details = {
-  back_to_logs: 'Back to Audit Logs',
-  back_to_user: 'Back to {{name}}',
+  page_title: 'Audit log details',
+  back_to_logs: 'Back to audit logs',
+  back_to: 'Back to {{name}}',
   success: 'Success',
   failed: 'Failed',
-  event_key: 'Event Key',
+  event_key: 'Event key',
   application: 'Application',
   ip_address: 'IP address',
   user: 'User',
@@ -14,4 +15,4 @@ const log_details = {
   raw_data: 'Raw data',
 };
 
-export default log_details;
+export default Object.freeze(log_details);

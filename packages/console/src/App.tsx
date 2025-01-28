@@ -1,109 +1,160 @@
 import { UserScope } from '@logto/core-kit';
-import { LogtoProvider } from '@logto/react';
-import { adminConsoleApplicationId, managementResource } from '@logto/schemas';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { SWRConfig } from 'swr';
+import { LogtoProvider, Prompt, useLogto } from '@logto/react';
+import {
+  adminConsoleApplicationId,
+  defaultTenantId,
+  PredefinedScope,
+  TenantScope,
+} from '@logto/schemas';
+import { conditionalArray } from '@silverhand/essentials';
+import { useContext, useMemo } from 'react';
+import { Helmet } from 'react-helmet';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
+import 'overlayscrollbars/overlayscrollbars.css';
 import './scss/normalized.scss';
+import './scss/overlayscrollbars.scss';
 // eslint-disable-next-line import/no-unassigned-import
 import '@fontsource/roboto-mono';
-import AppBoundary from '@/components/AppBoundary';
-import AppContent from '@/components/AppContent';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import Toast from '@/components/Toast';
-import useSwrOptions from '@/hooks/use-swr-options';
-import initI18n from '@/i18n/init';
-import ApiResourceDetails from '@/pages/ApiResourceDetails';
-import ApiResources from '@/pages/ApiResources';
-import ApplicationDetails from '@/pages/ApplicationDetails';
-import Applications from '@/pages/Applications';
-import AuditLogDetails from '@/pages/AuditLogDetails';
-import AuditLogs from '@/pages/AuditLogs';
-import Callback from '@/pages/Callback';
-import ConnectorDetails from '@/pages/ConnectorDetails';
-import Connectors from '@/pages/Connectors';
-import Dashboard from '@/pages/Dashboard';
-import GetStarted from '@/pages/GetStarted';
-import NotFound from '@/pages/NotFound';
-import Settings from '@/pages/Settings';
-import SignInExperience from '@/pages/SignInExperience';
-import UserDetails from '@/pages/UserDetails';
-import Users from '@/pages/Users';
-import Welcome from '@/pages/Welcome';
+// eslint-disable-next-line import/no-unassigned-import
+import 'react-color-palette/css';
 
-import { ConnectorsTabs, SignInExperiencePage } from './consts/page-tabs';
-import { getBasename } from './utilities/router';
+import CloudAppRoutes from '@/cloud/AppRoutes';
+import AppLoading from '@/components/AppLoading';
+import { isCloud } from '@/consts/env';
+import { cloudApi, getManagementApi, meApi } from '@/consts/resources';
+import { ConsoleRoutes } from '@/containers/ConsoleRoutes';
+
+import { GlobalScripts } from './components/Conversion';
+import { adminTenantEndpoint, mainTitle } from './consts';
+import ErrorBoundary from './containers/ErrorBoundary';
+import LogtoErrorBoundary from './containers/LogtoErrorBoundary';
+import AppConfirmModalProvider from './contexts/AppConfirmModalProvider';
+import AppDataProvider, { AppDataContext } from './contexts/AppDataProvider';
+import { AppThemeProvider } from './contexts/AppThemeProvider';
+import TenantsProvider, { TenantsContext } from './contexts/TenantsProvider';
+import Toast from './ds-components/Toast';
+import useCurrentUser from './hooks/use-current-user';
+import initI18n from './i18n/init';
 
 void initI18n();
 
-const Main = () => {
-  const swrOptions = useSwrOptions();
+/**
+ * The main entry of the project. It provides two fundamental context providers:
+ *
+ * - `RouterProvider`: the sole router provider of the project.
+ * - `TenantsProvider`: manages the tenants data, requires the `RouterProvider` to
+ * get the current tenant ID from the URL.
+ */
+function App() {
+  const router = createBrowserRouter([
+    {
+      path: '*',
+      element: (
+        <TenantsProvider>
+          <Providers />
+        </TenantsProvider>
+      ),
+    },
+  ]);
 
-  return (
-    <ErrorBoundary>
-      <SWRConfig value={swrOptions}>
-        <AppBoundary>
-          <Toast />
-          <Routes>
-            <Route path="callback" element={<Callback />} />
-            <Route path="welcome" element={<Welcome />} />
-            <Route element={<AppContent />}>
-              <Route path="*" element={<NotFound />} />
-              <Route path="get-started" element={<GetStarted />} />
-              <Route path="applications">
-                <Route index element={<Applications />} />
-                <Route path="create" element={<Applications />} />
-                <Route path=":id" element={<ApplicationDetails />} />
-              </Route>
-              <Route path="api-resources">
-                <Route index element={<ApiResources />} />
-                <Route path="create" element={<ApiResources />} />
-                <Route path=":id" element={<ApiResourceDetails />} />
-              </Route>
-              <Route path="connectors">
-                <Route index element={<Navigate replace to={ConnectorsTabs.Passwordless} />} />
-                <Route path=":tab" element={<Connectors />} />
-                <Route path=":tab/create/:createType" element={<Connectors />} />
-                <Route path=":tab/:connectorId" element={<ConnectorDetails />} />
-              </Route>
-              <Route path="users">
-                <Route index element={<Users />} />
-                <Route path="create" element={<Users />} />
-                <Route path=":userId" element={<UserDetails />} />
-                <Route path=":userId/logs" element={<UserDetails />} />
-                <Route path=":userId/logs/:logId" element={<AuditLogDetails />} />
-              </Route>
-              <Route path="sign-in-experience">
-                <Route index element={<Navigate replace to={SignInExperiencePage.BrandingTab} />} />
-                <Route path=":tab" element={<SignInExperience />} />
-              </Route>
-              <Route path="settings" element={<Settings />} />
-              <Route path="audit-logs">
-                <Route index element={<AuditLogs />} />
-                <Route path=":logId" element={<AuditLogDetails />} />
-              </Route>
-              <Route path="dashboard" element={<Dashboard />} />
-            </Route>
-          </Routes>
-        </AppBoundary>
-      </SWRConfig>
-    </ErrorBoundary>
-  );
-};
-
-const App = () => (
-  <BrowserRouter basename={getBasename('console', '5002')}>
-    <LogtoProvider
-      config={{
-        endpoint: window.location.origin,
-        appId: adminConsoleApplicationId,
-        resources: [managementResource.indicator],
-        scopes: [UserScope.Identities, UserScope.CustomData],
-      }}
-    >
-      <Main />
-    </LogtoProvider>
-  </BrowserRouter>
-);
+  return <RouterProvider router={router} />;
+}
 
 export default App;
+
+/**
+ * This component serves as a container for all the providers and boundary components.
+ *
+ * Since `TenantsContext` requires the `TenantsProvider` to be mounted, and the initialization
+ * of `LogtoProvider` requires the `TenantsContext` to be available, we have to put them into
+ * different components.
+ */
+function Providers() {
+  const { currentTenantId } = useContext(TenantsContext);
+
+  // For Cloud, we use Management API proxy for accessing tenant data.
+  // For OSS, we directly call the tenant API with the default tenant API resource.
+  const resources = useMemo(
+    () =>
+      isCloud
+        ? [cloudApi.indicator, meApi.indicator]
+        : [getManagementApi(defaultTenantId).indicator, meApi.indicator],
+    []
+  );
+
+  const scopes = useMemo(
+    () => [
+      UserScope.Email,
+      UserScope.Identities,
+      UserScope.CustomData,
+      UserScope.Organizations,
+      UserScope.OrganizationRoles,
+      PredefinedScope.All,
+      ...conditionalArray(
+        isCloud && [
+          ...Object.values(TenantScope),
+          cloudApi.scopes.CreateTenant,
+          cloudApi.scopes.ManageTenantSelf,
+        ]
+      ),
+    ],
+    []
+  );
+
+  return (
+    <LogtoProvider
+      unstable_enableCache
+      config={{
+        endpoint: adminTenantEndpoint.href,
+        appId: adminConsoleApplicationId,
+        resources,
+        scopes,
+        prompt: [Prompt.Login, Prompt.Consent],
+      }}
+    >
+      <AppThemeProvider>
+        <Helmet titleTemplate={`%s - ${mainTitle}`} defaultTitle={mainTitle} />
+        <Toast />
+        <AppConfirmModalProvider>
+          <ErrorBoundary>
+            <LogtoErrorBoundary>
+              {/**
+               * If it's not Cloud (OSS), render the tenant app container directly since only default tenant is available;
+               * if it's Cloud, render the tenant app container only when a tenant ID is available (in a tenant context).
+               */}
+              {!isCloud || currentTenantId ? (
+                <AppDataProvider>
+                  <AppRoutes />
+                </AppDataProvider>
+              ) : (
+                <CloudAppRoutes />
+              )}
+            </LogtoErrorBoundary>
+          </ErrorBoundary>
+        </AppConfirmModalProvider>
+      </AppThemeProvider>
+    </LogtoProvider>
+  );
+}
+
+/** Renders different routes based on the user's onboarding status. */
+function AppRoutes() {
+  const { tenantEndpoint } = useContext(AppDataContext);
+  const { isLoaded } = useCurrentUser();
+  const { isAuthenticated } = useLogto();
+
+  // Authenticated user should load onboarding data before rendering the app.
+  // This looks weird and it will be refactored soon by merging the onboarding
+  // routes with the console routes.
+  if (!tenantEndpoint || (isCloud && isAuthenticated && !isLoaded)) {
+    return <AppLoading />;
+  }
+
+  return (
+    <>
+      <GlobalScripts />
+      <ConsoleRoutes />
+    </>
+  );
+}

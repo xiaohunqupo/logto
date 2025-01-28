@@ -1,5 +1,5 @@
 import type { SignInExperience } from '@logto/schemas';
-import { SignInIdentifier, SignInMode, InteractionEvent } from '@logto/schemas';
+import { SignInIdentifier, SignInMode, InteractionEvent, MfaFactor } from '@logto/schemas';
 
 import { mockSignInExperience } from '#src/__mocks__/sign-in-experience.js';
 
@@ -7,6 +7,7 @@ import {
   verifySignInModeSettings,
   verifyIdentifierSettings,
   verifyProfileSettings,
+  verifyMfaSettings,
 } from './sign-in-experience-validation.js';
 
 describe('verifySignInModeSettings', () => {
@@ -120,8 +121,8 @@ describe('identifier validation', () => {
     }).toThrow();
   });
 
-  it('email passcode', () => {
-    const identifier = { email: 'email', passcode: 'passcode' };
+  it('email verificationCode', () => {
+    const identifier = { email: 'email', verificationCode: 'verificationCode' };
 
     expect(() => {
       verifyIdentifierSettings(identifier, mockSignInExperience);
@@ -188,7 +189,7 @@ describe('identifier validation', () => {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
-            ({ identifier }) => identifier !== SignInIdentifier.Sms
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
           ),
         },
       });
@@ -200,7 +201,7 @@ describe('identifier validation', () => {
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: false,
               verificationCode: true,
               isPasswordPrimary: true,
@@ -211,8 +212,8 @@ describe('identifier validation', () => {
     }).toThrow();
   });
 
-  it('phone passcode', () => {
-    const identifier = { phone: '123456', passcode: 'passcode' };
+  it('phone verificationCode', () => {
+    const identifier = { phone: '123456', verificationCode: 'verificationCode' };
 
     expect(() => {
       verifyIdentifierSettings(identifier, mockSignInExperience);
@@ -223,7 +224,7 @@ describe('identifier validation', () => {
         ...mockSignInExperience,
         signIn: {
           methods: mockSignInExperience.signIn.methods.filter(
-            ({ identifier }) => identifier !== SignInIdentifier.Sms
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
           ),
         },
       });
@@ -235,7 +236,7 @@ describe('identifier validation', () => {
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: true,
               verificationCode: false,
               isPasswordPrimary: true,
@@ -249,19 +250,49 @@ describe('identifier validation', () => {
       verifyIdentifierSettings(identifier, {
         ...mockSignInExperience,
         signUp: {
-          identifiers: [SignInIdentifier.Sms],
+          identifiers: [SignInIdentifier.Phone],
           password: false,
           verify: true,
         },
         signIn: {
           methods: [
             {
-              identifier: SignInIdentifier.Sms,
+              identifier: SignInIdentifier.Phone,
               password: true,
               verificationCode: false,
               isPasswordPrimary: true,
             },
           ],
+        },
+      });
+    }).not.toThrow();
+  });
+
+  it('connector phone should not throw', () => {
+    const identifier = { phone: '123456', connectorId: 'logto' };
+
+    expect(() => {
+      verifyIdentifierSettings(identifier, {
+        ...mockSignInExperience,
+        signIn: {
+          methods: mockSignInExperience.signIn.methods.filter(
+            ({ identifier }) => identifier !== SignInIdentifier.Phone
+          ),
+        },
+      });
+    }).not.toThrow();
+  });
+
+  it('connector email should not throw', () => {
+    const identifier = { email: 'foo@logto.io', connectorId: 'logto' };
+
+    expect(() => {
+      verifyIdentifierSettings(identifier, {
+        ...mockSignInExperience,
+        signIn: {
+          methods: mockSignInExperience.signIn.methods.filter(
+            ({ identifier }) => identifier !== SignInIdentifier.Email
+          ),
         },
       });
     }).not.toThrow();
@@ -297,7 +328,7 @@ describe('profile validation', () => {
         { phone: '123456' },
         {
           ...mockSignInExperience,
-          signUp: { identifiers: [SignInIdentifier.Sms], password: false, verify: true },
+          signUp: { identifiers: [SignInIdentifier.Phone], password: false, verify: true },
         }
       );
     }).not.toThrow();
@@ -308,7 +339,7 @@ describe('profile validation', () => {
         {
           ...mockSignInExperience,
           signUp: {
-            identifiers: [SignInIdentifier.Sms, SignInIdentifier.Email],
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
             password: false,
             verify: true,
           },
@@ -322,7 +353,7 @@ describe('profile validation', () => {
         {
           ...mockSignInExperience,
           signUp: {
-            identifiers: [SignInIdentifier.Sms, SignInIdentifier.Email],
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
             password: false,
             verify: true,
           },
@@ -336,12 +367,36 @@ describe('profile validation', () => {
         {
           ...mockSignInExperience,
           signUp: {
-            identifiers: [SignInIdentifier.Sms, SignInIdentifier.Email],
+            identifiers: [SignInIdentifier.Phone, SignInIdentifier.Email],
             password: false,
             verify: true,
           },
         }
       );
+    }).toThrow();
+  });
+});
+
+describe('MFA', () => {
+  it('MFA sign-in-experience settings verification', () => {
+    expect(() => {
+      verifyMfaSettings(MfaFactor.TOTP, {
+        ...mockSignInExperience,
+        mfa: {
+          ...mockSignInExperience.mfa,
+          factors: [MfaFactor.TOTP],
+        },
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      verifyMfaSettings(MfaFactor.TOTP, {
+        ...mockSignInExperience,
+        mfa: {
+          ...mockSignInExperience.mfa,
+          factors: [MfaFactor.WebAuthn],
+        },
+      });
     }).toThrow();
   });
 });

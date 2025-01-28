@@ -2,19 +2,31 @@ import classNames from 'classnames';
 import type { ReactNode } from 'react';
 
 import SubmitFormChangesActionBar from '../SubmitFormChangesActionBar';
-import * as styles from './index.module.scss';
+
+import styles from './index.module.scss';
 
 type Props = {
-  isDirty: boolean;
-  isSubmitting: boolean;
-  children: ReactNode;
-  onSubmit: () => Promise<void>;
-  onDiscard: () => void;
+  readonly autoComplete?: string;
+  readonly isDirty: boolean;
+  readonly isSubmitting: boolean;
+  readonly onSubmit: () => Promise<void>;
+  readonly onDiscard: () => void;
+  readonly children: ReactNode;
 };
 
-const DetailsForm = ({ isDirty, isSubmitting, onSubmit, onDiscard, children }: Props) => {
+function DetailsForm({
+  autoComplete,
+  isDirty,
+  isSubmitting,
+  onSubmit,
+  onDiscard,
+  children,
+}: Props) {
   return (
-    <form className={classNames(styles.container, isDirty && styles.withSubmitActionBar)}>
+    <form
+      className={classNames(styles.container, isDirty && styles.withSubmitActionBar)}
+      autoComplete={autoComplete}
+    >
       <div className={styles.fields}>{children}</div>
       <SubmitFormChangesActionBar
         isOpen={isDirty}
@@ -24,6 +36,6 @@ const DetailsForm = ({ isDirty, isSubmitting, onSubmit, onDiscard, children }: P
       />
     </form>
   );
-};
+}
 
 export default DetailsForm;

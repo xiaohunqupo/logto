@@ -1,5 +1,6 @@
 const logs = {
-  title: 'Audit Logs',
+  page_title: 'Audit logs',
+  title: 'Audit logs',
   subtitle:
     'Anzeige der Log Daten von Authentifizierungsereignissen, die von Admins und Benutzern stammen',
   event: 'Event',
@@ -9,4 +10,4 @@ const logs = {
   filter_by: 'Filter nach',
 };
 
-export default logs;
+export default Object.freeze(logs);

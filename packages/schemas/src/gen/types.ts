@@ -1,5 +1,7 @@
 export type Field = {
   name: string;
+  /** The JSDoc comment for the field. */
+  comments?: string;
   type?: string;
   customType?: string;
   tsType?: string;
@@ -24,11 +26,12 @@ export type GeneratedType = Type & {
 
 export type Table = {
   name: string;
+  /** The JSDoc comment for the table. */
+  comments?: string;
   fields: Field[];
 };
 
-export type TableWithType = {
-  name: string;
+export type TableWithType = Omit<Table, 'fields'> & {
   fields: FieldWithType[];
 };
 

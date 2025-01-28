@@ -1,4 +1,7 @@
-import { isLanguageTag, languageTagGuard } from './utility.js';
+import { describe, expect, it } from 'vitest';
+import { number, ZodError } from 'zod';
+
+import { fallback, isLanguageTag, languageTagGuard } from './utility.js';
 
 describe('isLanguageTag', () => {
   it('should pass when input is a valid language key', () => {
@@ -23,5 +26,15 @@ describe('languageTagGuard', () => {
     for (const invalidLanguageKey of [undefined, '', 'xx-XX']) {
       expect(languageTagGuard.safeParse(invalidLanguageKey).success).toBeFalsy();
     }
+  });
+});
+
+describe('fallback', () => {
+  it('should fallback to default value', () => {
+    const schema = number();
+    const tolerant = schema.or(fallback(-1));
+
+    expect(() => schema.parse('foo')).toThrow(ZodError);
+    expect(tolerant.parse('foo')).toBe(-1);
   });
 });

@@ -1,18 +1,22 @@
-import type { ConnectorSession } from '@logto/connector-kit';
-import { connectorSessionGuard } from '@logto/connector-kit';
-import type { Profile, InteractionEvent } from '@logto/schemas';
+import type { Profile } from '@logto/schemas';
+import { InteractionEvent } from '@logto/schemas';
+import { assert } from '@silverhand/essentials';
 import type { Context } from 'koa';
 import type { Provider, InteractionResults } from 'oidc-provider';
-import { z } from 'zod';
+import { errors } from 'oidc-provider';
 
 import RequestError from '#src/errors/RequestError/index.js';
 import assertThat from '#src/utils/assert-that.js';
 
 import { anonymousInteractionResultGuard } from '../types/guard.js';
 import type {
-  Identifier,
-  AnonymousInteractionResult,
   AccountVerifiedInteractionResult,
+  AnonymousInteractionResult,
+  Identifier,
+  RegisterInteractionResult,
+  VerifiedForgotPasswordInteractionResult,
+  VerifiedInteractionResult,
+  VerifiedRegisterInteractionResult,
 } from '../types/index.js';
 
 const isProfileIdentifier = (identifier: Identifier, profile?: Profile) => {
@@ -48,7 +52,7 @@ export const mergeIdentifiers = (newIdentifier: Identifier, oldIdentifiers?: Ide
 /**
  * Categorize the identifiers based on their different use cases
  * @typedef {Object} result
- * @property {Identifier[]} userAccountIdentifiers - identifiers to verify a specific user account e.g. for sign-in and reset-password
+ * @property {Identifier[]} authIdentifiers - identifiers to verify a specific user account e.g. for sign-in and reset-password
  * @property {Identifier[]} profileIdentifiers - identifiers to verify a new anonymous profile e.g. new email, new phone or new social identity
  *
  * @param {Identifier[]} identifiers
@@ -59,10 +63,10 @@ export const categorizeIdentifiers = (
   identifiers: Identifier[],
   profile?: Profile
 ): {
-  userAccountIdentifiers: Identifier[];
+  authIdentifiers: Identifier[];
   profileIdentifiers: Identifier[];
 } => {
-  const userAccountIdentifiers = new Set<Identifier>();
+  const authIdentifiers = new Set<Identifier>();
   const profileIdentifiers = new Set<Identifier>();
 
   for (const identifier of identifiers) {
@@ -70,18 +74,28 @@ export const categorizeIdentifiers = (
       profileIdentifiers.add(identifier);
       continue;
     }
-    userAccountIdentifiers.add(identifier);
+    authIdentifiers.add(identifier);
   }
 
   return {
-    userAccountIdentifiers: [...userAccountIdentifiers],
+    authIdentifiers: [...authIdentifiers],
     profileIdentifiers: [...profileIdentifiers],
   };
 };
 
-export const isAccountVerifiedInteractionResult = (
-  interaction: AnonymousInteractionResult
-): interaction is AccountVerifiedInteractionResult => Boolean(interaction.accountId);
+export const isForgotPasswordInteractionResult = (
+  interaction: VerifiedInteractionResult
+): interaction is VerifiedForgotPasswordInteractionResult =>
+  interaction.event === InteractionEvent.ForgotPassword;
+
+export const isRegisterInteractionResult = (
+  interaction: VerifiedInteractionResult
+): interaction is VerifiedRegisterInteractionResult =>
+  interaction.event === InteractionEvent.Register;
+
+export const isSignInInteractionResult = (
+  interaction: RegisterInteractionResult | AccountVerifiedInteractionResult
+): interaction is AccountVerifiedInteractionResult => interaction.event === InteractionEvent.SignIn;
 
 export const storeInteractionResult = async (
   interaction: Omit<AnonymousInteractionResult, 'event'> & { event?: InteractionEvent },
@@ -124,36 +138,49 @@ export const clearInteractionStorage = async (ctx: Context, provider: Provider) 
   }
 };
 
-export const assignConnectorSessionResult = async (
-  ctx: Context,
-  provider: Provider,
-  connectorSession: ConnectorSession
-) => {
-  const details = await provider.interactionDetails(ctx.req, ctx.res);
-  await provider.interactionResult(ctx.req, ctx.res, {
-    ...details.result,
-    connectorSession,
-  });
+/**
+ * The following three methods (`getInteractionFromProviderByJti`, `assignResultToInteraction`
+ * and `epochTime`) refer to implementation in
+ * https://github.com/panva/node-oidc-provider/blob/main/lib/provider.js
+ */
+type Interaction = Awaited<ReturnType<Provider['interactionDetails']>>;
+
+const epochTime = (date = Date.now()) => Math.floor(date / 1000);
+
+export const getInteractionFromProviderByJti = async (
+  jti: string,
+  provider: Provider
+): Promise<Interaction> => {
+  const interaction = await provider.Interaction.find(jti);
+
+  assert(interaction, new errors.SessionNotFound('interaction session not found'));
+
+  if (interaction.session?.uid) {
+    const session = await provider.Session.findByUid(interaction.session.uid);
+
+    assert(session, new errors.SessionNotFound('session not found'));
+
+    assert(
+      interaction.session.accountId === session.accountId,
+      new errors.SessionNotFound('session principal changed')
+    );
+  }
+
+  return interaction;
 };
 
-export const getConnectorSessionResult = async (
-  ctx: Context,
-  provider: Provider
-): Promise<ConnectorSession> => {
-  const { result } = await provider.interactionDetails(ctx.req, ctx.res);
+/**
+ * Since we don't have the OIDC provider context here, `provider.interactionResult` cannot be used.
+ * This method is forked from the original implementation in `provide.interactionResult` in oidc-provider.
+ * Assign the result to the interaction and save it.
+ */
+export const assignResultToInteraction = async (
+  interaction: Interaction,
+  result: InteractionResults
+) => {
+  const { lastSubmission, exp } = interaction;
 
-  const signInResult = z
-    .object({
-      connectorSession: connectorSessionGuard,
-    })
-    .safeParse(result);
-
-  assertThat(result && signInResult.success, 'session.connector_validation_session_not_found');
-
-  const { connectorSession, ...rest } = result;
-  await provider.interactionResult(ctx.req, ctx.res, {
-    ...rest,
-  });
-
-  return signInResult.data.connectorSession;
+  // eslint-disable-next-line @silverhand/fp/no-mutation
+  interaction.result = { ...lastSubmission, ...result };
+  await interaction.save(exp - epochTime());
 };

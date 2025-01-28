@@ -1,11 +1,15 @@
-import en from '@logto/phrases-ui/lib/locales/en.js';
+import { type CustomPhrase } from '@logto/schemas';
+
+import { mockId } from '#src/test-utils/nanoid.js';
 
 export const enTag = 'en';
 export const trTrTag = 'tr-TR';
 export const zhCnTag = 'zh-CN';
-export const zhHkTag = 'zh-HK';
+export const mockTag = 'fo-BA';
 
 export const mockEnCustomPhrase = {
+  tenantId: 'fake_tenant',
+  id: mockId,
   languageTag: enTag,
   translation: {
     input: {
@@ -16,30 +20,11 @@ export const mockEnCustomPhrase = {
       confirm_password: 'Confirm password 5',
     },
   },
-};
-
-export const mockEnPhrase = {
-  languageTag: enTag,
-  translation: {
-    ...en.translation,
-    ...mockEnCustomPhrase.translation,
-  },
-};
-
-export const mockTrTrCustomPhrase = {
-  languageTag: trTrTag,
-  translation: {
-    input: {
-      username: 'Kullanıcı Adı 1',
-      password: 'Şifre 2',
-      email: 'E-posta Adresi 3',
-      phone_number: 'Telefon Numarası 4',
-      confirm_password: 'Şifreyi Doğrula 5',
-    },
-  },
-};
+} satisfies CustomPhrase;
 
 export const mockZhCnCustomPhrase = {
+  tenantId: 'fake_tenant',
+  id: mockId,
   languageTag: zhCnTag,
   translation: {
     input: {
@@ -50,10 +35,12 @@ export const mockZhCnCustomPhrase = {
       confirm_password: '确认密码 5',
     },
   },
-};
+} satisfies CustomPhrase;
 
 export const mockZhHkCustomPhrase = {
-  languageTag: zhHkTag,
+  tenantId: 'fake_tenant',
+  id: mockId,
+  languageTag: mockTag,
   translation: {
     input: {
       email: '郵箱 1',
@@ -63,4 +50,4 @@ export const mockZhHkCustomPhrase = {
       confirm_password: '確認密碼 5',
     },
   },
-};
+} satisfies CustomPhrase;

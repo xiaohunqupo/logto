@@ -1,6 +1,7 @@
 import { InteractionEvent } from '@logto/schemas';
 import type { Context } from 'koa';
-import type { Provider } from 'oidc-provider';
+
+import type TenantContext from '#src/tenants/TenantContext.js';
 
 import type {
   RegisterInteractionResult,
@@ -9,6 +10,7 @@ import type {
   AccountVerifiedInteractionResult,
 } from '../types/index.js';
 import { storeInteractionResult } from '../utils/interaction.js';
+
 import verifyUserAccount from './user-identity-verification.js';
 
 type InteractionResult =
@@ -18,7 +20,7 @@ type InteractionResult =
 
 export default async function verifyIdentifier(
   ctx: Context,
-  provider: Provider,
+  tenant: TenantContext,
   interactionRecord: InteractionResult
 ): Promise<RegisterInteractionResult | AccountVerifiedInteractionResult> {
   if (interactionRecord.event === InteractionEvent.Register) {
@@ -26,8 +28,8 @@ export default async function verifyIdentifier(
   }
 
   // Verify the user account and assign the verified result to the interaction record
-  const accountVerifiedInteractionResult = await verifyUserAccount(interactionRecord);
-  await storeInteractionResult(accountVerifiedInteractionResult, ctx, provider);
+  const accountVerifiedInteractionResult = await verifyUserAccount(tenant, interactionRecord);
+  await storeInteractionResult(accountVerifiedInteractionResult, ctx, tenant.provider);
 
   return accountVerifiedInteractionResult;
 }

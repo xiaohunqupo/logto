@@ -5,16 +5,28 @@ import { memo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import CodeEditor from '../CodeEditor';
+// TODO: @charles double check if this is still needed
+/**
+ * Workaround for the markdown crash issue in the parcel dev build. It seems parcel does
+ * something clever in dev mode and messing up the `hastToReact` module. Manually adding
+ * the `property-information` import somehow keeps the reference and makes dev build work.
+ * @see https://github.com/remarkjs/react-markdown/issues/747
+ * @see https://github.com/parcel-bundler/parcel/discussions/9113
+ */
+// eslint-disable-next-line import/no-unassigned-import
+import 'property-information';
+
+import CodeEditor from '@/ds-components/CodeEditor';
+
 import GithubRawImage from './components/GithubRawImage';
-import * as styles from './index.module.scss';
+import styles from './index.module.scss';
 
 type Props = {
-  className?: string;
-  children: string;
+  readonly className?: string;
+  readonly children: string;
 };
 
-const Markdown = ({ className, children }: Props) => {
+function Markdown({ className, children }: Props) {
   const tocIdSet = useRef<Set<string>>(new Set());
 
   const generateTocId = (text: string): Optional<string> => {
@@ -32,8 +44,8 @@ const Markdown = ({ className, children }: Props) => {
 
     const initialKebabCaseString = text
       // Remove all symbols and punctuations except for dash and underscore. https://javascript.info/regexp-unicode
-      .replace(/\p{S}|\p{Pi}|\p{Pf}|\p{Ps}|\p{Pe}|\p{Po}/gu, '')
-      .replace(/\s+/g, '-')
+      .replaceAll(/\p{S}|\p{Pi}|\p{Pf}|\p{Ps}|\p{Pe}|\p{Po}/gu, '')
+      .replaceAll(/\s+/g, '-')
       .toLowerCase();
 
     return resolveIdCollision(initialKebabCaseString);
@@ -44,15 +56,15 @@ const Markdown = ({ className, children }: Props) => {
       remarkPlugins={[remarkGfm]}
       className={classNames(styles.markdown, className)}
       components={{
-        code: ({ node, inline, className, children, ...props }) => {
+        code: ({ className, children, ...props }) => {
           const [, codeBlockType] = /language-(\w+)/.exec(className ?? '') ?? [];
 
-          return inline ? (
+          return codeBlockType ? (
+            <CodeEditor isReadonly language={codeBlockType} value={String(children)} />
+          ) : (
             <code className={styles.inlineCode} {...props}>
               {children}
             </code>
-          ) : (
-            <CodeEditor isReadonly language={codeBlockType} value={String(children)} />
           );
         },
         img: ({ src, alt }) => {
@@ -78,6 +90,6 @@ const Markdown = ({ className, children }: Props) => {
       {children}
     </ReactMarkdown>
   );
-};
+}
 
 export default memo(Markdown);

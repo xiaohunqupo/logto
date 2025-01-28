@@ -1,14 +1,11 @@
-import { createMockUtils } from '@logto/shared/esm';
+import { createMockPool } from '@silverhand/slonik';
 import Sinon from 'sinon';
-import { createMockPool } from 'slonik';
+import { vi, expect, afterAll, describe, it } from 'vitest';
 
 import { chooseAlterationsByVersion } from './version.js';
 
-const { jest } = import.meta;
-const { mockEsmWithActual } = createMockUtils(jest);
-
 const pool = createMockPool({
-  query: jest.fn(),
+  query: vi.fn(),
 });
 
 const files = Object.freeze([
@@ -17,30 +14,33 @@ const files = Object.freeze([
   { filename: '1.0.0-1663923772-c.js', path: '/alterations-js/1.0.0-1663923772-c.js' },
 ]);
 
-await mockEsmWithActual('./utils.js', () => ({
+vi.mock('./utils.js', async (importOriginal) => ({
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  ...(await importOriginal<object>()),
   getAlterationFiles: async () => files,
 }));
 
-const { getCurrentDatabaseAlterationTimestamp } = await mockEsmWithActual(
-  '../../../queries/logto-config.js',
-  () => ({
-    getCurrentDatabaseAlterationTimestamp: jest.fn(),
-  })
-);
+const getCurrentDatabaseAlterationTimestamp = vi.fn();
 
-const { getUndeployedAlterations } = await import('./index.js');
+vi.doMock('../../../queries/system.js', async (importOriginal) => ({
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  ...(await importOriginal<object>()),
+  getCurrentDatabaseAlterationTimestamp,
+}));
 
-describe('getUndeployedAlterations()', () => {
+const { getAvailableAlterations } = await import('./index.js');
+
+describe('getAvailableAlterations()', () => {
   it('returns all files if database timestamp is 0', async () => {
     getCurrentDatabaseAlterationTimestamp.mockResolvedValue(0);
 
-    await expect(getUndeployedAlterations(pool)).resolves.toEqual(files);
+    await expect(getAvailableAlterations(pool)).resolves.toEqual(files);
   });
 
   it('returns files whose timestamp is greater then database timestamp', async () => {
     getCurrentDatabaseAlterationTimestamp.mockResolvedValue(1_663_923_770);
 
-    await expect(getUndeployedAlterations(pool)).resolves.toEqual([files[1], files[2]]);
+    await expect(getAvailableAlterations(pool)).resolves.toEqual([files[1], files[2]]);
   });
 });
 

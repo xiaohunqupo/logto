@@ -1,8 +1,10 @@
 const tab_sections = {
   overview: 'Visão geral',
-  resource_management: 'Recursos',
-  user_management: 'Usuários',
-  help_and_support: 'Ajuda e suporte',
+  authentication: 'Autenticação',
+  authorization: 'Autorização',
+  users: 'Usuários',
+  developer: 'Desenvolvedor',
+  tenant: 'Inquilino',
 };
 
-export default tab_sections;
+export default Object.freeze(tab_sections);

@@ -1,42 +1,61 @@
 import type { AdminConsoleKey } from '@logto/phrases';
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 
-import Card from '../Card';
-import TextLink from '../TextLink';
-import * as styles from './index.module.scss';
+import DynamicT from '@/ds-components/DynamicT';
+import TextLink from '@/ds-components/TextLink';
+import type { Props as TextLinkProps } from '@/ds-components/TextLink';
 
-type Props = {
-  title: AdminConsoleKey;
-  description?: AdminConsoleKey;
-  learnMoreLink?: string;
-  children: ReactNode;
+import FormCardLayout from './FormCardLayout';
+import styles from './index.module.scss';
+
+export type Props = {
+  readonly title: AdminConsoleKey;
+  readonly tag?: ReactNode;
+  readonly description?: AdminConsoleKey;
+  readonly descriptionInterpolation?: Record<string, unknown>;
+  readonly learnMoreLink?: Pick<TextLinkProps, 'href' | 'targetBlank'> & {
+    linkText?: AdminConsoleKey;
+  };
+  readonly children: ReactNode;
 };
 
-const FormCard = ({ title, description, learnMoreLink, children }: Props) => {
-  const { t } = useTranslation(undefined, { keyPrefix: 'admin_console' });
-
+function FormCard({
+  title,
+  tag,
+  description,
+  descriptionInterpolation,
+  learnMoreLink,
+  children,
+}: Props) {
   return (
-    <Card className={styles.container}>
-      <div className={styles.introduction}>
-        <div className={styles.title}>{t(title)}</div>
-        {description && (
-          <div className={styles.description}>
-            {t(description)}
-            {learnMoreLink && (
-              <>
-                {' '}
-                <TextLink href={learnMoreLink} target="_blank" rel="noopener">
-                  {t('general.learn_more')}
-                </TextLink>
-              </>
-            )}
+    <FormCardLayout
+      introduction={
+        <>
+          <div className={styles.title}>
+            <DynamicT forKey={title} />
+            {tag}
           </div>
-        )}
-      </div>
-      <div className={styles.form}>{children}</div>
-    </Card>
+          {description && (
+            <div className={styles.description}>
+              <DynamicT forKey={description} interpolation={descriptionInterpolation} />
+              {learnMoreLink?.href && (
+                <>
+                  {' '}
+                  <TextLink href={learnMoreLink.href} targetBlank={learnMoreLink.targetBlank}>
+                    <DynamicT forKey={learnMoreLink.linkText ?? 'general.learn_more'} />
+                  </TextLink>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      }
+    >
+      {children}
+    </FormCardLayout>
   );
-};
+}
 
 export default FormCard;
+
+export { default as FormCardSkeleton } from './Skeleton';

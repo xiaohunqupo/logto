@@ -111,8 +111,20 @@ export const mockSmsConnectorConfig = {
       content: 'This is for forgot-password purposes only. Your passcode is {{code}}.',
     },
     {
-      content: 'This is for testing purposes only. Your passcode is {{code}}.',
+      usageType: 'Generic',
+      content: 'This is for Management API call only. Your passcode is {{code}}.',
+    },
+    {
       usageType: 'Test',
+      content: 'This is for testing purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'UserPermissionValidation',
+      content: 'This is for user permission validation purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'BindNewIdentifier',
+      content: 'This is for binding new identifier purposes only. Your passcode is {{code}}.',
     },
   ],
 };
@@ -142,16 +154,40 @@ export const mockEmailConnectorConfig = {
       content: 'This is for forgot-password purposes only. Your passcode is {{code}}.',
     },
     {
+      usageType: 'Generic',
+      type: 'text/plain',
+      subject: 'Logto Generic Template',
+      content: 'This is for Management API call only. Your passcode is {{code}}.',
+    },
+    {
       usageType: 'Test',
       type: 'text/plain',
       subject: 'Logto Test Template',
       content: 'This is for testing purposes only. Your passcode is {{code}}.',
     },
+    {
+      usageType: 'OrganizationInvitation',
+      type: 'text/plain',
+      subject: 'Logto Organization Invitation Template',
+      content: 'This is for organization invitation purposes only. Your link is {{link}}.',
+    },
+    {
+      usageType: 'UserPermissionValidation',
+      type: 'text/plain',
+      subject: 'Logto User Permission Validation Template',
+      content: 'This is for user permission validation purposes only. Your passcode is {{code}}.',
+    },
+    {
+      usageType: 'BindNewIdentifier',
+      type: 'text/plain',
+      subject: 'Logto Bind New Identifier Template',
+      content: 'This is for binding new identifier purposes only. Your passcode is {{code}}.',
+    },
   ],
 };
 
-export const mockStandardEmailConnectorId = 'mock-standard-email-service';
-export const mockStandardEmailConnectorConfig = {
+export const mockAlternativeEmailConnectorId = 'mock-email-service-alternative';
+export const mockAlternativeEmailConnectorConfig = {
   apiKey: 'api-key-value',
   fromEmail: 'noreply@logto.test.io',
   fromName: 'from-name-value',
@@ -194,4 +230,8 @@ export const mockSocialConnectorTarget = 'mock-social';
 export const mockSocialConnectorConfig = {
   clientId: 'client_id_value',
   clientSecret: 'client_secret_value',
+};
+export const mockSocialConnectorNewConfig = {
+  clientId: 'client_id_value_new',
+  clientSecret: 'client_secret_value_new',
 };
