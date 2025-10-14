@@ -133,10 +133,12 @@ const sign_in_exp = {
         description:
           "Pour les connecteurs sociaux et d'entreprise, stockage sécurisé des jetons d'accès tiers pour appeler leurs API (par exemple, ajouter des événements au calendrier Google).",
         third_party_token_storage: {
-          title: 'Stockage de jetons tiers',
-          third_party_access_token_retrieval: "Récupération de jeton d'accès tiers",
-          third_party_access_token_retrieval_tooltip:
-            "Une fois l'Account API activée, la récupération de jetons tiers est automatiquement activée. Pour stocker les jetons, vous pouvez l'activer dans les paramètres du connecteur social ou d'entreprise correspondant.",
+          title: 'Jeton tiers',
+          third_party_access_token_retrieval: 'Jeton tiers',
+          third_party_token_tooltip:
+            "Pour stocker les jetons, vous pouvez activer ceci dans les paramètres du connecteur social ou d'entreprise correspondant.",
+          third_party_token_description:
+            "Une fois l'Account API activée, la récupération de jetons tiers est automatiquement activée.",
         },
       },
     },
@@ -169,6 +171,12 @@ const sign_in_exp = {
       'Aucun connecteur d\'email n\'a été configuré. Avant de terminer la configuration, les utilisateurs ne pourront pas se connecter avec cette méthode. <a>{{link}}</a> dans "Connecteurs"',
     no_connector_social:
       'Vous n\'avez pas encore configuré de connecteur social. Ajoutez d\'abord des connecteurs pour appliquer des méthodes de connexion sociale. <a>{{link}}</a> dans "Connecteurs".',
+    no_connector_email_account_center:
+      'Aucun connecteur e-mail configuré. Configurez-le dans <a>"Connecteurs e-mail et SMS"</a>.',
+    no_connector_sms_account_center:
+      'Aucun connecteur SMS configuré. Configurez-le dans <a>"Connecteurs e-mail et SMS"</a>.',
+    no_connector_social_account_center:
+      'Aucun connecteur social configuré. Configurez-le dans <a>"Connecteurs sociaux"</a>.',
     no_mfa_factor:
       'Aucun facteur MFA n\'a été configuré. <a>{{link}}</a> dans "Authentification multi-facteurs".',
     setup_link: 'Configurer',

@@ -129,10 +129,11 @@ const sign_in_exp = {
         description:
           '对于社交和企业连接器，安全存储第三方访问令牌以调用其 API（例如，向 Google 日历添加事件）。',
         third_party_token_storage: {
-          title: '第三方令牌存储',
+          title: '第三方令牌',
           third_party_access_token_retrieval: '第三方访问令牌检索',
-          third_party_access_token_retrieval_tooltip:
-            '启用 Account API 后，第三方令牌检索会自动激活。要存储令牌，您可以在相应的社交或企业连接器的设置中启用此功能。',
+          third_party_token_tooltip:
+            '要存储令牌，您可以在相应的社交或企业连接器的设置中启用此功能。',
+          third_party_token_description: '启用 Account API 后，第三方令牌检索会自动激活。',
         },
       },
     },
@@ -164,6 +165,11 @@ const sign_in_exp = {
       '尚未设置电子邮件连接器。在完成该配置前，用户将无法通过此登录方式登录。<a>{{link}}</a>连接器。',
     no_connector_social:
       '你还没有设置任何社交连接器。首先添加连接器以应用社交登录方法。<a>{{link}}</a>连接器。',
+    no_connector_email_account_center:
+      '尚未设置电子邮件连接器。请在<a>"邮件与短信连接器"</a>中设置。',
+    no_connector_sms_account_center:
+      '尚未设置 SMS 短信连接器。请在<a>"邮件与短信连接器"</a>中设置。',
+    no_connector_social_account_center: '尚未设置社交连接器。请在<a>"社交连接器"</a>中设置。',
     no_mfa_factor: '尚未设置 MFA 因子。请先在"多因素认证"中<a>{{link}}</a>。',
     setup_link: '立即设置',
   },

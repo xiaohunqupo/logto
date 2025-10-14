@@ -132,10 +132,12 @@ const sign_in_exp = {
         description:
           'Dla złączy społecznościowych i korporacyjnych, bezpieczne przechowywanie tokenów dostępu stron trzecich w celu wywołania ich interfejsów API (np. dodawanie wydarzeń do Kalendarza Google).',
         third_party_token_storage: {
-          title: 'Przechowywanie tokenów stron trzecich',
-          third_party_access_token_retrieval: 'Pobieranie tokenu dostępu strony trzeciej',
-          third_party_access_token_retrieval_tooltip:
-            'Po włączeniu Account API pobieranie tokenów stron trzecich jest automatycznie aktywowane. Aby przechowywać tokeny, możesz to włączyć w ustawieniach odpowiedniego złącza społecznościowego lub korporacyjnego.',
+          title: 'Token strony trzeciej',
+          third_party_access_token_retrieval: 'Token strony trzeciej',
+          third_party_token_tooltip:
+            'Aby przechowywać tokeny, możesz włączyć to w ustawieniach odpowiedniego złącza społecznościowego lub korporacyjnego.',
+          third_party_token_description:
+            'Po włączeniu Account API pobieranie tokenów stron trzecich jest automatycznie aktywowane.',
         },
       },
     },
@@ -168,6 +170,12 @@ const sign_in_exp = {
       'Nie ustawiono jeszcze łącznika e-mail. Przed zakończeniem konfiguracji użytkownicy nie będą mogli się zalogować przy użyciu tej metody. <a>{{link}}</a> w sekcji „Łączniki"',
     no_connector_social:
       'Nie skonfigurowałeś jeszcze żadnego konektora społecznościowego. Najpierw dodaj konektory, aby zastosować metody logowania społecznościowego. <a>{{link}}</a> w "Konektory".',
+    no_connector_email_account_center:
+      'Nie ustawiono jeszcze łącznika e-mail. Skonfiguruj go w <a>„Łączniki e-mail i SMS"</a>.',
+    no_connector_sms_account_center:
+      'Nie ustawiono jeszcze łącznika SMS. Skonfiguruj go w <a>„Łączniki e-mail i SMS"</a>.',
+    no_connector_social_account_center:
+      'Nie ustawiono jeszcze łącznika społecznościowego. Skonfiguruj go w <a>„Łączniki społecznościowe"</a>.',
     no_mfa_factor:
       'Nie ustawiono jeszcze czynnika MFA. <a>{{link}}</a> w „Uwierzytelnianie wieloskładnikowe".',
     setup_link: 'Konfiguracja',

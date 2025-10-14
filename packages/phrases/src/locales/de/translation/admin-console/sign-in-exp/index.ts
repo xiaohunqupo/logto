@@ -132,10 +132,12 @@ const sign_in_exp = {
         description:
           'Für soziale und Enterprise-Konnektoren, sichere Speicherung von Drittanbieter-Zugriffstokens zum Aufrufen ihrer APIs (z. B. Hinzufügen von Ereignissen zu Google Kalender).',
         third_party_token_storage: {
-          title: 'Drittanbieter-Token-Speicherung',
-          third_party_access_token_retrieval: 'Abruf von Drittanbieter-Zugriffstoken',
-          third_party_access_token_retrieval_tooltip:
-            'Sobald die Account API aktiviert ist, wird der Abruf von Drittanbieter-Token automatisch aktiviert. Um Token zu speichern, können Sie dies in den Einstellungen des entsprechenden sozialen oder Enterprise-Konnektors aktivieren.',
+          title: 'Drittanbieter-Token',
+          third_party_access_token_retrieval: 'Drittanbieter-Token',
+          third_party_token_tooltip:
+            'Um Token zu speichern, können Sie dies in den Einstellungen des entsprechenden sozialen oder Enterprise-Konnektors aktivieren.',
+          third_party_token_description:
+            'Sobald die Account API aktiviert ist, wird der Abruf von Drittanbieter-Token automatisch aktiviert.',
         },
       },
     },
@@ -168,6 +170,12 @@ const sign_in_exp = {
       'Es wurde noch kein E-Mail-Konnektor eingerichtet. Bevor die Konfiguration abgeschlossen werden kann, können sich Benutzer nicht mit dieser Methode anmelden. <a>{{link}}</a> in "Verbindungen".',
     no_connector_social:
       'Sie haben noch keine soziale Verbindung eingerichtet. Fügen Sie zuerst Verbindungen hinzu, um soziale Anmeldeverfahren anzuwenden. <a>{{link}}</a> in "Verbindungen".',
+    no_connector_email_account_center:
+      'Noch kein E-Mail-Konnektor eingerichtet. Richten Sie ihn unter <a>"E-Mail- und SMS-Konnektoren"</a> ein.',
+    no_connector_sms_account_center:
+      'Noch kein SMS-Konnektor eingerichtet. Richten Sie ihn unter <a>"E-Mail- und SMS-Konnektoren"</a> ein.',
+    no_connector_social_account_center:
+      'Noch kein Social-Konnektor eingerichtet. Richten Sie ihn unter <a>"Social-Konnektoren"</a> ein.',
     no_mfa_factor:
       'Es wurde noch kein MFA-Faktor eingerichtet. <a>{{link}}</a> in "Multi-Faktor-Authentifizierung".',
     setup_link: 'Einrichtung',

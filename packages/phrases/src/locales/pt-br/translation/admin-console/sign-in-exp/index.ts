@@ -132,10 +132,12 @@ const sign_in_exp = {
         description:
           'Para conectores sociais e empresariais, armazene com segurança tokens de acesso de terceiros para chamar suas APIs (por exemplo, adicionar eventos ao Google Calendar).',
         third_party_token_storage: {
-          title: 'Armazenamento de tokens de terceiros',
-          third_party_access_token_retrieval: 'Recuperação de token de acesso de terceiros',
-          third_party_access_token_retrieval_tooltip:
-            'Uma vez que a Account API esteja ativada, a recuperação de tokens de terceiros é ativada automaticamente. Para armazenar tokens, você pode ativar isso nas configurações do conector social ou empresarial correspondente.',
+          title: 'Token de terceiros',
+          third_party_access_token_retrieval: 'Token de terceiros',
+          third_party_token_tooltip:
+            'Para armazenar tokens, você pode habilitar isso nas configurações do conector social ou empresarial correspondente.',
+          third_party_token_description:
+            'Uma vez que a Account API esteja ativada, a recuperação de tokens de terceiros é ativada automaticamente.',
         },
       },
     },
@@ -168,6 +170,12 @@ const sign_in_exp = {
       'Nenhum conector de e-mail configurado ainda. Até terminar de configurar seu conector de e-mail, seus usuários não poderão fazer login. <a>{{link}}</a> em "Conectores"',
     no_connector_social:
       'Você ainda não configurou nenhum conector social. Adicione conectores primeiro para aplicar métodos de login social. <a>{{link}}</a> em "Conectores".',
+    no_connector_email_account_center:
+      'Nenhum conector de e-mail configurado ainda. Configure em <a>"Conectores de e-mail e SMS"</a>.',
+    no_connector_sms_account_center:
+      'Nenhum conector SMS configurado ainda. Configure em <a>"Conectores de e-mail e SMS"</a>.',
+    no_connector_social_account_center:
+      'Nenhum conector social configurado ainda. Configure em <a>"Conectores sociais"</a>.',
     no_mfa_factor:
       'Nenhum fator de MFA configurado ainda. <a>{{link}}</a> em "Autenticação multifator".',
     setup_link: 'Configurar',

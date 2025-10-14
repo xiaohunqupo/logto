@@ -110,8 +110,8 @@ function AccountCenter({ isActive, data }: Props) {
                       key={item.key}
                       item={item}
                       value={fields[item.key]}
-                      isReadOnly={!isAccountApiEnabled || isSubmitting}
                       isMfaEnabled={isMfaEnabled}
+                      isGlobalDisabled={!isAccountApiEnabled}
                       fieldOptions={fieldOptions}
                       onChange={handleFieldChange}
                     />

@@ -133,10 +133,12 @@ const sign_in_exp = {
         description:
           'Para conectores sociales y empresariales, almacenamiento seguro de tokens de acceso de terceros para llamar a sus APIs (por ejemplo, agregar eventos al Calendario de Google).',
         third_party_token_storage: {
-          title: 'Almacenamiento de tokens de terceros',
-          third_party_access_token_retrieval: 'Recuperación de token de acceso de terceros',
-          third_party_access_token_retrieval_tooltip:
-            'Una vez que se habilita la Account API, la recuperación de tokens de terceros se activa automáticamente. Para almacenar tokens, puede habilitarlo en la configuración del conector social o empresarial correspondiente.',
+          title: 'Token de terceros',
+          third_party_access_token_retrieval: 'Token de terceros',
+          third_party_token_tooltip:
+            'Para almacenar tokens, puede habilitar esto en la configuración del conector social o empresarial correspondiente.',
+          third_party_token_description:
+            'Una vez que se habilita la Account API, la recuperación de tokens de terceros se activa automáticamente.',
         },
       },
     },
@@ -169,6 +171,12 @@ const sign_in_exp = {
       'Aún no se ha configurado el conector de correo electrónico. Antes de completar la configuración, los usuarios no podrán iniciar sesión con este método. <a>{{link}}</a> en "Conectores"',
     no_connector_social:
       'Todavía no ha configurado ningún conector social. Agregue conectores primero para aplicar métodos de inicio de sesión social. <a>{{link}}</a> en "Conectores".',
+    no_connector_email_account_center:
+      'Aún no se ha configurado el conector de correo electrónico. Configúrelo en <a>"Conectores de correo electrónico y SMS"</a>.',
+    no_connector_sms_account_center:
+      'Aún no se ha configurado el conector SMS. Configúrelo en <a>"Conectores de correo electrónico y SMS"</a>.',
+    no_connector_social_account_center:
+      'Aún no se ha configurado el conector social. Configúrelo en <a>"Conectores sociales"</a>.',
     no_mfa_factor:
       'Aún no se ha configurado ningún factor de MFA. <a>{{link}}</a> en "Autenticación multifactor".',
     setup_link: 'Configuración',

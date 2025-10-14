@@ -132,10 +132,12 @@ const sign_in_exp = {
         description:
           'ソーシャルコネクタやエンタープライズコネクタ向けに、サードパーティのアクセストークンを安全に保存して、それらのAPI（例：Googleカレンダーにイベントを追加）を呼び出します。',
         third_party_token_storage: {
-          title: 'サードパーティトークンストレージ',
-          third_party_access_token_retrieval: 'サードパーティアクセストークン取得',
-          third_party_access_token_retrieval_tooltip:
-            'Account APIが有効になると、サードパーティトークンの取得が自動的に有効になります。トークンを保存するには、対応するソーシャルまたはエンタープライズコネクタの設定で有効にできます。',
+          title: 'サードパーティトークン',
+          third_party_access_token_retrieval: 'サードパーティトークン',
+          third_party_token_tooltip:
+            'トークンを保存するには、対応するソーシャルコネクタまたはエンタープライズコネクタの設定でこれを有効にすることができます。',
+          third_party_token_description:
+            'Account APIが有効になると、サードパーティトークンの取得が自動的に有効になります。',
         },
       },
     },
@@ -168,6 +170,12 @@ const sign_in_exp = {
       'まだメールコネクタが設定されていません。構成を完了する前に、この方法でのサインインはできません。<a>{{link}}</a>「コネクタ」に移動してください',
     no_connector_social:
       'まだソーシャルコネクタを設定していません。ソーシャルサインインの方法を適用するには、まずコネクタを追加してください。<a>{{link}}</a> の中で「コネクタ」をご覧ください。',
+    no_connector_email_account_center:
+      'メールコネクタがまだ設定されていません。<a>「メールおよびSMSコネクタ」</a>で設定してください。',
+    no_connector_sms_account_center:
+      'SMSコネクタがまだ設定されていません。<a>「メールおよびSMSコネクタ」</a>で設定してください。',
+    no_connector_social_account_center:
+      'ソーシャルコネクタがまだ設定されていません。<a>「ソーシャルコネクタ」</a>で設定してください。',
     no_mfa_factor:
       'まだ MFA ファクターが設定されていません。「多要素認証」で<a>{{link}}</a>してください。',
     setup_link: '設定',

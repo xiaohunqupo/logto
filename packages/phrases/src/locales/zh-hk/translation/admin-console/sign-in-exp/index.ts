@@ -129,10 +129,11 @@ const sign_in_exp = {
         description:
           '對於社交和企業連接器，安全存儲第三方訪問令牌以調用其 API（例如，向 Google 日曆添加事件）。',
         third_party_token_storage: {
-          title: '第三方令牌存儲',
-          third_party_access_token_retrieval: '第三方訪問令牌檢索',
-          third_party_access_token_retrieval_tooltip:
-            '啟用 Account API 後，第三方令牌檢索會自動激活。要存儲令牌，您可以在相應的社交或企業連接器的設置中啟用此功能。',
+          title: '第三方令牌',
+          third_party_access_token_retrieval: '第三方令牌',
+          third_party_token_tooltip:
+            '要存儲令牌，您可以在相應的社交或企業連接器的設置中啟用此功能。',
+          third_party_token_description: '啟用 Account API 後，第三方令牌檢索會自動激活。',
         },
       },
     },
@@ -164,6 +165,11 @@ const sign_in_exp = {
       '尚未設置電子郵件連接器。在完成該配置前，用戶將無法通過此登錄方式登錄。<a>{{link}}</a>連接器。',
     no_connector_social:
       '你還沒有設置任何社交連接器。首先添加連接器以應用社交登錄方法。<a>{{link}}</a>連接器。',
+    no_connector_email_account_center:
+      '尚未設置電子郵件連接器。請在<a>「郵件與短信連接器」</a>中設置。',
+    no_connector_sms_account_center:
+      '尚未設置 SMS 短信連接器。請在<a>「郵件與短信連接器」</a>中設置。',
+    no_connector_social_account_center: '尚未設置社交連接器。請在<a>「社交連接器」</a>中設置。',
     no_mfa_factor: '尚未設置 MFA 因子。請先在「多因素認證」中<a>{{link}}</a>。',
     setup_link: '立即設置',
   },
